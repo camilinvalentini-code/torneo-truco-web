@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useTheme } from "../../../lib/theme";
 import { supabase } from "../../../lib/supabaseClient";
 import BracketDisplay from "../../../components/BracketDisplay";
@@ -60,7 +61,10 @@ export default function TorneoPublico({ params }) {
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ background: T.bg }}>
       <div className="max-w-3xl lg:max-w-6xl mx-auto px-4 py-6">
-        <div className="flex justify-end mb-2">
+        <div className="flex justify-between mb-2">
+          <Link href="/" className="text-xs underline" style={{ color: T.inkDim }}>
+            ← inicio
+          </Link>
           <ThemeToggleButton />
         </div>
         <div className="flex items-center gap-2 justify-center mb-1">

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTheme } from "../../lib/theme";
 import { supabase } from "../../lib/supabaseClient";
 import ThemeToggleButton from "../../components/ThemeToggleButton";
@@ -39,12 +40,23 @@ export default function CrearTorneo() {
       return;
     }
     router.push(`/torneo/${data.id}/admin?key=${admin_token}`);
+
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("torneotruco:mis-torneos") || "[]");
+      saved.unshift({ id: data.id, admin_token, nombre: nombre || "(sin nombre)", categoria, fecha });
+      window.localStorage.setItem("torneotruco:mis-torneos", JSON.stringify(saved.slice(0, 20)));
+    } catch (e) {
+      /* si falla el guardado local no bloqueamos el flujo */
+    }
   }
 
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ background: T.bg }}>
       <div className="max-w-md mx-auto px-4 py-8">
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between mb-4">
+          <Link href="/" className="text-xs underline" style={{ color: T.inkDim }}>
+            ← inicio
+          </Link>
           <ThemeToggleButton />
         </div>
         <h1 className="text-2xl font-black text-center mb-6" style={{ color: T.ink, fontFamily: "Georgia, serif" }}>
@@ -56,14 +68,14 @@ export default function CrearTorneo() {
             <input
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              placeholder="Nombre del torneo (ej: Torneo BOKA Talón)"
+              placeholder="Nombre del torneo (ej: Torneo Lunes 13/7)"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
             <input
               value={ubicacion}
               onChange={(e) => setUbicacion(e.target.value)}
-              placeholder="Ubicación (ej: Córdoba, Seis Monos Bar.)"
+              placeholder="Ubicación (ej: Córdoba, Vidon Bar, Achával)"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
