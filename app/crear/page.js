@@ -68,14 +68,14 @@ export default function CrearTorneo() {
             <input
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              placeholder="Nombre del torneo (ej: Torneo Lunes 13/7)"
+              placeholder="Nombre del torneo (ej: BOKA TALÓN)"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
             <input
               value={ubicacion}
               onChange={(e) => setUbicacion(e.target.value)}
-              placeholder="Ubicación (ej: Córdoba, Vidon Bar, Achával)"
+              placeholder="Ubicación (ej: Seis Monos Bar)"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
