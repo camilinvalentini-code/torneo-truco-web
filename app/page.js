@@ -33,7 +33,7 @@ export default function Home() {
           className="block text-center py-4 rounded-2xl font-black text-lg mb-3 transition-all duration-200 hover:scale-105 active:scale-95"
           style={{ background: T.gold, color: T.ink }}
         >
-          🎴 Crear torneo nuevo
+          ⚔️ Crear torneo nuevo
         </Link>
         <Link
           href="/historial"
