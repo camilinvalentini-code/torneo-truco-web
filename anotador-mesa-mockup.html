@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anotador de mesa — mockup</title>
+<style>
+  :root {
+    --bg: #EAF3EC;
+    --panel: #FFFFFF;
+    --panelAlt: #F1F7F1;
+    --ink: #33453E;
+    --inkDim: #84958C;
+    --gold: #EAC27A;
+    --goldText: #C6902E;
+    --rose: #D98A82;
+    --roseDim: #B85C55;
+    --line: #DCEAE0;
+    --strokeFaint: #DCEAE0;
+  }
+  body.dark {
+    --bg: #152420;
+    --panel: #1E332B;
+    --panelAlt: #26392F;
+    --ink: #EDE6D6;
+    --inkDim: #93A69B;
+    --gold: #E3B563;
+    --goldText: #F2CE87;
+    --rose: #D98A82;
+    --roseDim: #E8A39B;
+    --line: #334A3F;
+    --strokeFaint: #334A3F;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 24px 12px;
+    transition: background .4s ease, color .4s ease;
+  }
+  .wrap { width: 100%; max-width: 420px; }
+  .topbar { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+  .themebtn {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform .15s ease;
+  }
+  .themebtn:active { transform: scale(0.95); }
+  .tag {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--inkDim);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  h1 {
+    text-align: center;
+    font-family: Georgia, serif;
+    font-size: 22px;
+    margin: 0 0 16px;
+    transition: color .4s ease;
+  }
+  .banner {
+    display: none;
+    text-align: center;
+    background: #FBF3E3;
+    border: 2px solid #EAC27A;
+    border-radius: 22px;
+    padding: 14px;
+    margin-bottom: 14px;
+    font-family: Georgia, serif;
+  }
+  .banner.show { display: block; }
+  .banner .who { font-size: 19px; font-weight: 900; color: #33453E; }
+  .banner .sub { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #B85C55; font-weight: 700; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: 0 2px 10px rgba(51,69,62,0.06);
+    padding: 6px 18px 18px;
+    transition: background .4s ease, border-color .4s ease;
+  }
+  .team-block { padding: 14px 0; }
+  .team-block + .team-block { border-top: 2px dashed var(--line); }
+  .teamname { font-weight: 800; font-size: 17px; margin-bottom: 8px; }
+  .cols { display: flex; align-items: flex-start; }
+  .col { flex: 1; text-align: center; }
+  .col-divider { width: 2px; align-self: stretch; background: var(--line); margin: 4px 10px; }
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--inkDim);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .groups { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .score-row {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 5px;
+    margin-top: 10px;
+  }
+  .score-num { font-size: 26px; font-weight: 900; color: var(--goldText); font-family: Georgia, serif; }
+  .score-max { font-size: 12px; color: var(--inkDim); }
+  .btnrow { display: flex; gap: 8px; margin-top: 12px; }
+  button {
+    flex: 1;
+    border: none;
+    border-radius: 14px;
+    padding: 10px 0;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    transition: transform .15s ease, opacity .15s ease, background .4s ease, color .4s ease;
+  }
+  button:active { transform: scale(0.95); }
+  .plus { background: var(--gold); color: #33453E; }
+  .minus { background: var(--panelAlt); color: var(--roseDim); border: 1px solid var(--line) !important; }
+  button:disabled { opacity: .4; cursor: default; }
+  .note { text-align:center; font-size: 11px; color: var(--inkDim); margin-top: 18px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <button class="themebtn" onclick="toggleTheme()" id="themeBtn">🌙 Modo oscuro</button>
+  </div>
+  <div class="tag">Mesa 3 · Cuartos de Final</div>
+  <h1>Anotador de partido</h1>
+
+  <div id="banner" class="banner">
+    <div class="sub">🏆 Ganó y avanza</div>
+    <div class="who" id="bannerText">—</div>
+  </div>
+
+  <div class="card">
+    <div class="team-block">
+      <div class="teamname">Sol de Mayo</div>
+      <div class="cols">
+        <div class="col">
+          <div class="section-label">Malas</div>
+          <div class="groups" id="malasA"></div>
+        </div>
+        <div class="col-divider"></div>
+        <div class="col">
+          <div class="section-label">Buenas</div>
+          <div class="groups" id="buenasA"></div>
+        </div>
+      </div>
+      <div class="score-row"><span class="score-num" id="scoreA">0</span><span class="score-max">/ 30</span></div>
+      <div class="btnrow">
+        <button class="minus" onclick="sumar('A', -1)">−1</button>
+        <button class="plus" onclick="sumar('A', 1)">+1 tanto</button>
+      </div>
+    </div>
+
+    <div class="team-block">
+      <div class="teamname">4 Baby</div>
+      <div class="cols">
+        <div class="col">
+          <div class="section-label">Malas</div>
+          <div class="groups" id="malasB"></div>
+        </div>
+        <div class="col-divider"></div>
+        <div class="col">
+          <div class="section-label">Buenas</div>
+          <div class="groups" id="buenasB"></div>
+        </div>
+      </div>
+      <div class="score-row"><span class="score-num" id="scoreB">0</span><span class="score-max">/ 30</span></div>
+      <div class="btnrow">
+        <button class="minus" onclick="sumar('B', -1)">−1</button>
+        <button class="plus" onclick="sumar('B', 1)">+1 tanto</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    Mockup de ejemplo (no guarda datos ni se conecta al cuadro real).<br/>
+    Tocá +1 / −1 para ver los cuadraditos, y el botón de arriba para probar el modo oscuro.
+  </p>
+</div>
+
+<script>
+  const state = { A: 18, B: 9 };
+  const names = { A: "Sol de Mayo", B: "4 Baby" };
+
+  function strokeGroup(value) {
+    const c = (n) => `var(${value >= n ? "--ink" : "--strokeFaint"})`;
+    const w = (n) => (value >= n ? 3.2 : 1.8);
+    return `
+      <svg width="38" height="38" viewBox="0 0 20 20">
+        <line x1="2" y1="2" x2="18" y2="2" stroke="${c(1)}" stroke-width="${w(1)}" stroke-linecap="round"/>
+        <line x1="18" y1="2" x2="18" y2="18" stroke="${c(2)}" stroke-width="${w(2)}" stroke-linecap="round"/>
+        <line x1="18" y1="18" x2="2" y2="18" stroke="${c(3)}" stroke-width="${w(3)}" stroke-linecap="round"/>
+        <line x1="2" y1="18" x2="2" y2="2" stroke="${c(4)}" stroke-width="${w(4)}" stroke-linecap="round"/>
+        <line x1="2" y1="2" x2="18" y2="18" stroke="${c(5)}" stroke-width="${w(5)}" stroke-linecap="round"/>
+      </svg>`;
+  }
+
+  function renderSection(containerId, countInSection) {
+    let html = "";
+    for (let g = 0; g < 3; g++) {
+      const val = Math.max(0, Math.min(5, countInSection - g * 5));
+      html += strokeGroup(val);
+    }
+    document.getElementById(containerId).innerHTML = html;
+  }
+
+  function render() {
+    for (const team of ["A", "B"]) {
+      const total = state[team];
+      const malas = Math.min(15, total);
+      const buenas = Math.max(0, total - 15);
+      document.getElementById("score" + team).textContent = total;
+      renderSection("malas" + team, malas);
+      renderSection("buenas" + team, buenas);
+    }
+    const winner = state.A >= 30 ? "A" : state.B >= 30 ? "B" : null;
+    const banner = document.getElementById("banner");
+    if (winner) {
+      banner.classList.add("show");
+      document.getElementById("bannerText").textContent =
+        `${names[winner]} ${state[winner]} – ${state[winner === "A" ? "B" : "A"]}`;
+    } else {
+      banner.classList.remove("show");
+    }
+    document.querySelectorAll(".plus").forEach((b) => (b.disabled = !!winner));
+  }
+
+  function sumar(team, delta) {
+    state[team] = Math.max(0, Math.min(30, state[team] + delta));
+    render();
+  }
+
+  function toggleTheme() {
+    const dark = document.body.classList.toggle("dark");
+    document.getElementById("themeBtn").textContent = dark ? "☀️ Modo día" : "🌙 Modo oscuro";
+  }
+
+  render();
+</script>
+</body>
+</html>
