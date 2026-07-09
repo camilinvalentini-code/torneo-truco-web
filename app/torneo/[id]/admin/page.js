@@ -157,9 +157,9 @@ export default function AdminPage({ params, searchParams }) {
           {[tournament.ubicacion, tournament.fecha, tournament.categoria].filter(Boolean).join(" · ")}
         </p>
         {origin && (
-          <p className="text-center text-xs mb-5 break-all">
-            <a href={publicUrl} target="_blank" rel="noreferrer" className="underline" style={{ color: T.goldBright }}>
-              link público del cuadro: {publicUrl}
+          <p className="text-center text-sm mb-5">
+            <a href={publicUrl} target="_blank" rel="noreferrer" className="underline font-bold" style={{ color: T.gold }}>
+              Seguí el torneo en vivo acá
             </a>
           </p>
         )}
