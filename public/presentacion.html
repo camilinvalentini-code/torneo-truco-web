@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Torneo de Truco — presentación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600&family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --felt:#0E2A20;
+    --felt-deep:#071812;
+    --cream:#F3E8D2;
+    --cream-dim:#AFC0B4;
+    --gold:#D4A94E;
+    --gold-bright:#EAC978;
+    --rose:#C1594F;
+    --line:rgba(212,169,78,0.25);
+    --serif:'Fraunces', Georgia, serif;
+    --sans:'Manrope', -apple-system, sans-serif;
+    --mono:'Space Mono', monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--felt);
+    color:var(--cream);
+    font-family:var(--sans);
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--gold);color:var(--felt);}
+
+  /* ambient glow */
+  .glow{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(600px 500px at 20% 15%, rgba(212,169,78,0.10), transparent 60%),
+      radial-gradient(700px 600px at 85% 70%, rgba(193,89,79,0.08), transparent 60%);
+    animation:drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes drift{
+    0%{ transform:translate(0,0); }
+    100%{ transform:translate(-2%, 3%); }
+  }
+
+  section{
+    position:relative; z-index:1;
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:80px 24px;
+  }
+
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--gold); margin-bottom:18px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{ content:''; width:22px; height:1px; background:var(--gold); display:inline-block; }
+
+  h1{
+    font-family:var(--serif); font-weight:900; font-size:clamp(40px,7vw,86px);
+    line-height:1.02; letter-spacing:-0.01em; max-width:14ch; text-align:center;
+  }
+  h1 em{ font-style:italic; font-weight:600; color:var(--gold-bright); }
+  h2{
+    font-family:var(--serif); font-weight:700; font-size:clamp(28px,4.2vw,48px);
+    line-height:1.1; max-width:16ch; text-align:center;
+  }
+  .sub{
+    font-size:clamp(15px,1.6vw,19px); color:var(--cream-dim); max-width:46ch;
+    text-align:center; line-height:1.65; margin-top:20px;
+  }
+
+  .reveal{ opacity:1; transform:none; transition:opacity .8s ease, transform .8s ease; }
+  .js-ready .reveal{ opacity:0; transform:translateY(28px); }
+  .js-ready .reveal.on{ opacity:1; transform:translateY(0); }
+  .reveal.d1{ transition-delay:.08s; } .reveal.d2{ transition-delay:.18s; }
+  .reveal.d3{ transition-delay:.28s; } .reveal.d4{ transition-delay:.38s; } .reveal.d5{ transition-delay:.48s; }
+
+  /* ---------- HERO ---------- */
+  #hero{ gap:0; }
+  .hero-cta{
+    margin-top:38px; display:inline-flex; align-items:center; gap:10px;
+    font-family:var(--mono); font-size:13px; letter-spacing:.05em;
+    color:var(--felt); background:var(--gold); padding:15px 28px; border-radius:999px;
+    text-decoration:none; font-weight:700;
+    transition:transform .25s ease, background .25s ease, box-shadow .25s ease;
+    box-shadow:0 0 0 rgba(212,169,78,0);
+  }
+  .hero-cta:hover{ transform:translateY(-2px) scale(1.03); background:var(--gold-bright); box-shadow:0 10px 30px rgba(212,169,78,0.25);}
+
+  .scoreboard-demo{
+    margin-top:64px; display:flex; gap:56px; align-items:flex-start;
+  }
+  .sb-team{ text-align:center; }
+  .sb-name{ font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--cream-dim); margin-bottom:14px; }
+  .sb-groups{ display:flex; gap:10px; }
+  .tally svg{ width:30px; height:30px; overflow:visible; }
+  .tally line{
+    stroke:var(--gold-bright); stroke-width:2.6; stroke-linecap:round; fill:none;
+    stroke-dasharray:1 1; stroke-dashoffset:1;
+  }
+
+  .scroll-hint{
+    position:absolute; bottom:38px; left:50%; transform:translateX(-50%);
+    font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--cream-dim); display:flex; flex-direction:column; align-items:center; gap:8px;
+    opacity:.7;
+  }
+  .scroll-hint .stick{ width:1px; height:30px; background:linear-gradient(var(--gold), transparent); animation:pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:.3;} 50%{opacity:1;} }
+
+  /* ---------- FEATURES ---------- */
+  .feat-list{ margin-top:56px; display:flex; flex-direction:column; gap:0; width:100%; max-width:640px; }
+  .feat{
+    display:flex; align-items:baseline; gap:24px; padding:26px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .feat:first-child{ border-top:1px solid var(--line); }
+  .feat-mark{ font-family:var(--mono); font-size:12px; color:var(--gold); flex-shrink:0; width:26px; }
+  .feat-body strong{ font-family:var(--serif); font-weight:600; font-size:20px; display:block; color:var(--cream); }
+  .feat-body span{ font-size:14.5px; color:var(--cream-dim); }
+
+  /* ---------- STEPS ---------- */
+  .timeline{ position:relative; margin-top:60px; max-width:520px; width:100%; padding-left:38px; }
+  .timeline-line{
+    position:absolute; left:9px; top:6px; bottom:6px; width:2px;
+    background:var(--line);
+  }
+  .timeline-fill{
+    position:absolute; left:9px; top:6px; width:2px; height:0%;
+    background:var(--gold); transition:height 1.4s cubic-bezier(.22,.8,.28,1);
+  }
+  .tstep{ position:relative; padding-bottom:44px; }
+  .tstep:last-child{ padding-bottom:0; }
+  .tstep::before{
+    content:attr(data-n); position:absolute; left:-38px; top:-2px;
+    width:20px; height:20px; border-radius:50%; background:var(--felt);
+    border:2px solid var(--gold); color:var(--gold-bright);
+    font-family:var(--mono); font-size:10px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tstep strong{ font-family:var(--serif); font-weight:600; font-size:20px; display:block; margin-bottom:4px; }
+  .tstep span{ font-size:14.5px; color:var(--cream-dim); }
+
+  /* ---------- APP TEASER ---------- */
+  .phone{
+    width:150px; height:280px; border:2px solid var(--gold); border-radius:26px;
+    position:relative; margin-bottom:40px;
+    box-shadow:0 0 0 rgba(212,169,78,0.0);
+    animation:phoneglow 3s ease-in-out infinite;
+  }
+  .phone::before{
+    content:''; position:absolute; inset:14px; border-radius:14px;
+    background:linear-gradient(160deg, rgba(212,169,78,0.14), rgba(193,89,79,0.08));
+  }
+  .phone::after{
+    content:'♠'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:34px; color:var(--gold-bright); opacity:.85;
+  }
+  @keyframes phoneglow{
+    0%,100%{ box-shadow:0 0 24px rgba(212,169,78,0.05); }
+    50%{ box-shadow:0 0 34px rgba(212,169,78,0.22); }
+  }
+  .soon-tag{
+    font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--rose); border:1px solid rgba(193,89,79,0.4); padding:6px 14px; border-radius:999px;
+    margin-bottom:22px;
+  }
+
+  /* ---------- CLOSE ---------- */
+  #close{ text-align:center; }
+  .domain{
+    font-family:var(--serif); font-weight:800; font-size:clamp(30px,5vw,52px); color:var(--gold-bright);
+    letter-spacing:-0.01em;
+  }
+  .close-links{ margin-top:30px; display:flex; flex-direction:column; gap:10px; align-items:center; }
+  .close-links a{ color:var(--cream-dim); text-decoration:none; font-size:14px; font-weight:600; }
+  .close-links a:hover{ color:var(--gold-bright); }
+  .alias{ font-size:12.5px; color:var(--cream-dim); margin-top:26px; }
+  .alias b{ color:var(--gold); }
+
+  /* ---------- DOT NAV ---------- */
+  .dotnav{
+    position:fixed; right:22px; top:50%; transform:translateY(-50%); z-index:5;
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .dotnav button{
+    width:8px; height:8px; border-radius:50%; border:1px solid var(--gold);
+    background:transparent; cursor:pointer; padding:0; transition:background .3s ease, transform .3s ease;
+  }
+  .dotnav button.active{ background:var(--gold); transform:scale(1.3); }
+  @media (max-width:640px){ .dotnav{ display:none; } }
+
+  .suitrow{ display:flex; gap:20px; margin-bottom:28px; align-items:center; }
+  .suitrow svg{ width:24px; height:24px; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+    html{ scroll-behavior:auto; }
+  }
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js-ready');</script>
+<div class="glow"></div>
+
+<nav class="dotnav" id="dotnav">
+  <button data-target="hero" class="active"></button>
+  <button data-target="feats"></button>
+  <button data-target="steps"></button>
+  <button data-target="app"></button>
+  <button data-target="close"></button>
+</nav>
+
+<section id="hero">
+  <div class="suitrow" id="suitrow"></div>
+  <div class="eyebrow">Para organizadores de truco</div>
+  <h1>El torneo se<br/>arma <em>solo.</em></h1>
+  <p class="sub">Sorteo automático, cuadro en vivo, y cada mesa anota sus propios puntos desde el celular.</p>
+  <a class="hero-cta" href="https://torneotruco.com.ar" target="_blank" rel="noreferrer">torneotruco.com.ar →</a>
+
+  <div class="scoreboard-demo">
+    <div class="sb-team">
+      <div class="sb-name">Sol de Mayo</div>
+      <div class="sb-groups" id="groupsA"></div>
+    </div>
+    <div class="sb-team">
+      <div class="sb-name">Río Platenses</div>
+      <div class="sb-groups" id="groupsB"></div>
+    </div>
+  </div>
+
+  <div class="scroll-hint"><span class="stick"></span>desliza</div>
+</section>
+
+<section id="feats">
+  <div class="eyebrow">Se acabó el lápiz y papel</div>
+  <h2 class="reveal">Todo lo que hoy<br/>se hace a mano</h2>
+  <div class="feat-list">
+    <div class="feat reveal d1"><div class="feat-mark">01</div><div class="feat-body"><strong>Sorteo automático</strong><span>arma el cuadro solo, sin favoritismos</span></div></div>
+    <div class="feat reveal d2"><div class="feat-mark">02</div><div class="feat-body"><strong>Cuadro en vivo</strong><span>se actualiza al instante, todos ven lo mismo</span></div></div>
+    <div class="feat reveal d3"><div class="feat-mark">03</div><div class="feat-body"><strong>Anotador por QR</strong><span>cada mesa carga sus propios puntos</span></div></div>
+    <div class="feat reveal d4"><div class="feat-mark">04</div><div class="feat-body"><strong>Repechaje opcional</strong><span>una segunda chance para los que pierden</span></div></div>
+    <div class="feat reveal d5"><div class="feat-mark">05</div><div class="feat-body"><strong>Historial de campeones</strong><span>queda guardado solo, torneo a torneo</span></div></div>
+  </div>
+</section>
+
+<section id="steps">
+  <div class="eyebrow">Cuatro pasos</div>
+  <h2 class="reveal">De cero a jugando<br/>en un rato</h2>
+  <div class="timeline">
+    <div class="timeline-line"></div>
+    <div class="timeline-fill" id="tfill"></div>
+    <div class="tstep" data-n="1"><strong>Creás el torneo</strong><span>nombre, lugar, fecha, categoría</span></div>
+    <div class="tstep" data-n="2"><strong>Anotás los equipos</strong><span>y marcás quién ya pagó</span></div>
+    <div class="tstep" data-n="3"><strong>Tocás sorteo</strong><span>el cuadro se arma solo</span></div>
+    <div class="tstep" data-n="4"><strong>Repartís el QR de cada mesa</strong><span>juegan, anotan, listo</span></div>
+  </div>
+</section>
+
+<section id="app">
+  <div class="soon-tag reveal">Lo que viene</div>
+  <div class="phone reveal d1"></div>
+  <h2 class="reveal d2">Ya viene en camino<br/>la aplicación.</h2>
+  <p class="sub reveal d3">Todo esto, pero como app — para tenerla siempre a mano en cada mesa, cada torneo.</p>
+</section>
+
+<section id="close">
+  <div class="eyebrow">Entrá cuando quieras</div>
+  <div class="domain">torneotruco.com.ar</div>
+  <div class="close-links">
+    <a href="https://instagram.com/truco.cordoba" target="_blank" rel="noreferrer">📸 @truco.cordoba</a>
+  </div>
+  <p class="alias">Si te sirvió, una colaboración se agradece — alias <b>Envidito</b></p>
+</section>
+
+<script>
+  // --- palos de la baraja española, iguales a los del producto real ---
+  document.getElementById('suitrow').innerHTML = `
+    <svg viewBox="0 0 20 20" fill="none">
+      <line x1="10" y1="2" x2="10" y2="14" stroke="#D4A94E" stroke-width="1.7"/>
+      <line x1="5.5" y1="6" x2="14.5" y2="6" stroke="#D4A94E" stroke-width="1.7"/>
+      <path d="M8 14H12L10 18L8 14Z" fill="#D4A94E"/>
+    </svg>
+    <svg viewBox="0 0 20 20" fill="none">
+      <line x1="5" y1="16" x2="15" y2="4" stroke="#D4A94E" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="6" cy="15" r="2.1" fill="#D4A94E"/>
+      <circle cx="14" cy="5" r="2.1" fill="#D4A94E"/>
+    </svg>
+    <svg viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="7.5" stroke="#D4A94E" stroke-width="1.6"/>
+      <circle cx="10" cy="10" r="3.2" stroke="#D4A94E" stroke-width="1.3"/>
+    </svg>
+    <svg viewBox="0 0 20 20" fill="none">
+      <path d="M4 3H16L13.2 10.5C12.5 12.3 11 13 10 13C9 13 7.5 12.3 6.8 10.5L4 3Z" stroke="#D4A94E" stroke-width="1.5" stroke-linejoin="round"/>
+      <line x1="10" y1="13" x2="10" y2="16.5" stroke="#D4A94E" stroke-width="1.5"/>
+      <line x1="6.5" y1="17.5" x2="13.5" y2="17.5" stroke="#D4A94E" stroke-width="1.5"/>
+    </svg>
+  `;
+
+  // --- tally marks: dibujo con pathLength normalizado, en loop ambiente ---
+  function tallyGroupSVG(){
+    return `<svg viewBox="0 0 20 20">
+      <line pathLength="1" x1="2" y1="2" x2="18" y2="2"/>
+      <line pathLength="1" x1="18" y1="2" x2="18" y2="18"/>
+      <line pathLength="1" x1="18" y1="18" x2="2" y2="18"/>
+      <line pathLength="1" x1="2" y1="18" x2="2" y2="2"/>
+      <line pathLength="1" x1="2" y1="2" x2="18" y2="18"/>
+    </svg>`;
+  }
+  function buildGroups(containerId, count){
+    const el = document.getElementById(containerId);
+    for(let g=0; g<count; g++){
+      const wrap = document.createElement('div');
+      wrap.className = 'tally';
+      wrap.innerHTML = tallyGroupSVG();
+      el.appendChild(wrap);
+    }
+    return el.querySelectorAll('.tally');
+  }
+  const groupsA = buildGroups('groupsA', 2);
+  const groupsB = buildGroups('groupsB', 2);
+
+  function animateTally(groups, baseDelay){
+    groups.forEach((g, gi) => {
+      const lines = g.querySelectorAll('line');
+      lines.forEach((line, li) => {
+        const delay = baseDelay + gi*900 + li*180;
+        line.style.animation = `draw 0.35s ease forwards`;
+        line.style.animationDelay = delay + 'ms';
+      });
+    });
+  }
+  const styleTag = document.createElement('style');
+  styleTag.textContent = `@keyframes draw { to { stroke-dashoffset:0; } }`;
+  document.head.appendChild(styleTag);
+
+  function loop(){
+    // reset
+    document.querySelectorAll('.tally line').forEach(l=>{
+      l.style.animation='none'; l.style.strokeDashoffset='1';
+    });
+    void document.body.offsetWidth; // reflow
+    animateTally(groupsA, 200);
+    animateTally(groupsB, 900);
+  }
+  loop();
+  setInterval(loop, 5200);
+
+  // --- scroll reveal ---
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting) e.target.classList.add('on');
+    });
+  }, { threshold:0.2 });
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  // --- timeline fill ---
+  const tfill = document.getElementById('tfill');
+  const stepsSection = document.getElementById('steps');
+  const io2 = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting) tfill.style.height = '100%';
+    });
+  }, { threshold:0.35 });
+  io2.observe(stepsSection);
+
+  // --- dot nav ---
+  const dots = document.querySelectorAll('#dotnav button');
+  dots.forEach(d=>{
+    d.addEventListener('click', ()=>{
+      document.getElementById(d.dataset.target).scrollIntoView({behavior:'smooth'});
+    });
+  });
+  const sections = [...dots].map(d=>document.getElementById(d.dataset.target));
+  const io3 = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const idx = sections.indexOf(e.target);
+        dots.forEach(d=>d.classList.remove('active'));
+        dots[idx].classList.add('active');
+      }
+    });
+  }, { threshold:0.5 });
+  sections.forEach(s=>io3.observe(s));
+</script>
+</body>
+</html>

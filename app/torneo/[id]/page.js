@@ -130,16 +130,6 @@ export default function TorneoPublico({ params }) {
             )}
           </>
         )}
-
-        <a
-          href="https://instagram.com/truco.cordoba"
-          target="_blank"
-          rel="noreferrer"
-          className="block text-center text-sm mt-10 font-semibold"
-          style={{ color: T.inkDim }}
-        >
-          📸 @truco.cordoba
-        </a>
       </div>
     </div>
   );

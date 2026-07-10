@@ -1,26 +1,26 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { useTheme } from "../../../../lib/theme";
+import { useAuth } from "../../../../lib/useAuth";
 import { supabase } from "../../../../lib/supabaseClient";
-import { buildMatchRows } from "../../../../lib/bracket";
-import { declareWinner } from "../../../../lib/matchLogic";
 import TeamList from "../../../../components/TeamList";
 import BracketDisplay from "../../../../components/BracketDisplay";
 import ThemeToggleButton from "../../../../components/ThemeToggleButton";
 import SuitIcon from "../../../../components/SuitIcon";
 
-export default function AdminPage({ params, searchParams }) {
+export default function AdminPage({ params }) {
   const { id } = params;
-  const key = searchParams?.key;
   const { T } = useTheme();
+  const router = useRouter();
+  const { session, profile, loading: authLoading } = useAuth();
 
   const [tournament, setTournament] = useState(null);
   const [teams, setTeams] = useState([]);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [unauthorized, setUnauthorized] = useState(false);
 
   const [newName, setNewName] = useState("");
   const [newPlayers, setNewPlayers] = useState("");
@@ -43,11 +43,6 @@ export default function AdminPage({ params, searchParams }) {
       setLoading(false);
       return;
     }
-    if (t.admin_token !== key) {
-      setUnauthorized(true);
-      setLoading(false);
-      return;
-    }
     const { data: ts } = await supabase.from("teams").select("*").eq("tournament_id", id).order("created_at");
     const { data: ms } = await supabase.from("matches").select("*").eq("tournament_id", id);
     setTournament(t);
@@ -57,7 +52,11 @@ export default function AdminPage({ params, searchParams }) {
     setInfoNombre((prev) => prev || t.nombre || "");
     setInfoUbicacion((prev) => prev || t.ubicacion || "");
     setInfoFecha((prev) => prev || t.fecha || "");
-  }, [id, key]);
+  }, [id]);
+
+  useEffect(() => {
+    if (!authLoading && !session) router.push("/organizador/acceso");
+  }, [authLoading, session, router]);
 
   useEffect(() => {
     load();
@@ -109,8 +108,16 @@ export default function AdminPage({ params, searchParams }) {
       return;
     }
     setError("");
-    const rows = buildMatchRows({ tournamentId: id, bracket: "main", teamIds: teams.map((t) => t.id) });
-    await supabase.from("matches").insert(rows);
+    const { error: err } = await supabase.rpc("generar_bracket", {
+      p_tournament_id: id,
+      p_bracket: "main",
+      p_team_ids: teams.map((t) => t.id),
+    });
+    if (err) {
+      setError("No se pudo hacer el sorteo. Probá de nuevo.");
+      console.error(err);
+      return;
+    }
     await supabase.from("tournaments").update({ started: true }).eq("id", id);
     load();
   }
@@ -139,21 +146,36 @@ export default function AdminPage({ params, searchParams }) {
   async function forzarGanador(match, winnerId) {
     const nombreEquipo = teamsById[winnerId]?.name || "este equipo";
     if (!window.confirm(`¿Marcar a "${nombreEquipo}" como ganador de este partido?`)) return;
-    await declareWinner({ supabase, match, winnerId, tournamentId: id });
+    await supabase.rpc("declarar_ganador", { p_match_id: match.id, p_winner_id: winnerId });
     load();
   }
 
-  if (loading) {
+  const esDueño = session && tournament && (tournament.organizador_id === session.user.id || profile?.role === "admin");
+
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg, color: T.ink }}>
         Cargando…
       </div>
     );
   }
-  if (unauthorized || !tournament) {
+  if (!tournament) {
     return (
       <div className="min-h-screen flex items-center justify-center text-center px-6" style={{ background: T.bg, color: T.ink }}>
-        No podés administrar este torneo con ese link. Fijate que copiaste la URL completa (incluyendo lo que va después de "?key=").
+        No encontramos este torneo.
+      </div>
+    );
+  }
+  if (!esDueño) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center text-center px-6 gap-3"
+        style={{ background: T.bg, color: T.ink }}
+      >
+        <p>Este torneo no es tuyo, así que no lo podés administrar.</p>
+        <Link href={`/torneo/${id}`} className="underline font-bold" style={{ color: T.goldBright }}>
+          Ver el cuadro en vivo (solo lectura)
+        </Link>
       </div>
     );
   }
@@ -168,8 +190,8 @@ export default function AdminPage({ params, searchParams }) {
     <div className="min-h-screen transition-colors duration-500" style={{ background: T.bg }}>
       <div className="max-w-3xl lg:max-w-6xl mx-auto px-4 py-6">
         <div className="flex justify-between mb-2">
-          <Link href="/" className="text-xs underline" style={{ color: T.inkDim }}>
-            ← inicio
+          <Link href="/organizador/panel" className="text-xs underline" style={{ color: T.inkDim }}>
+            ← mi panel
           </Link>
           <ThemeToggleButton />
         </div>

@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useTheme } from "../../../lib/theme";
+import { useSkin } from "../../../lib/scoreboardSkin";
 import { supabase } from "../../../lib/supabaseClient";
-import { declareWinner } from "../../../lib/matchLogic";
 import Scoreboard from "../../../components/Scoreboard";
 import ThemeToggleButton from "../../../components/ThemeToggleButton";
 import SuitIcon from "../../../components/SuitIcon";
@@ -10,6 +11,7 @@ import SuitIcon from "../../../components/SuitIcon";
 export default function PartidoPage({ params }) {
   const { token } = params;
   const { T } = useTheme();
+  const { layout, marks, setLayout, setMarks } = useSkin();
   const [match, setMatch] = useState(null);
   const [teams, setTeams] = useState({});
   const [loading, setLoading] = useState(true);
@@ -53,16 +55,15 @@ export default function PartidoPage({ params }) {
 
   async function onChange(side, delta) {
     if (!match || busy || match.winner_id) return;
-    const field = side === "A" ? "score_a" : "score_b";
-    const current = match[field];
-    const value = Math.max(0, Math.min(30, current + delta));
-    setMatch((m) => ({ ...m, [field]: value })); // respuesta inmediata en pantalla
     setBusy(true);
-    await supabase.from("matches").update({ [field]: value }).eq("id", match.id);
-    if (value >= 30) {
-      const winnerId = side === "A" ? match.team1_id : match.team2_id;
-      await declareWinner({ supabase, match: { ...match, [field]: value }, winnerId, tournamentId: match.tournament_id });
-    }
+    const field = side === "A" ? "score_a" : "score_b";
+    setMatch((m) => ({ ...m, [field]: Math.max(0, Math.min(30, m[field] + delta)) })); // respuesta inmediata en pantalla
+    const { data, error } = await supabase.rpc("anotar_punto", {
+      p_match_token: token,
+      p_lado: side,
+      p_delta: delta,
+    });
+    if (!error && data) setMatch(data);
     setBusy(false);
   }
 
@@ -88,7 +89,10 @@ export default function PartidoPage({ params }) {
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ background: T.bg }}>
       <div className="max-w-md mx-auto px-4 py-8">
-        <div className="flex justify-end mb-3">
+        <div className="flex justify-between mb-3">
+          <Link href="/" className="text-xs underline" style={{ color: T.inkDim }}>
+            ← inicio
+          </Link>
           <ThemeToggleButton />
         </div>
         <div className="flex justify-center mb-2">
@@ -115,6 +119,54 @@ export default function PartidoPage({ params }) {
           </div>
         )}
 
+        <div className="flex gap-2 justify-center flex-wrap mb-4">
+          <button
+            onClick={() => setLayout("apilado")}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-full transition-colors duration-150"
+            style={{
+              background: layout === "apilado" ? T.gold : T.panel,
+              color: layout === "apilado" ? T.ink : T.inkDim,
+              border: `1px solid ${T.line}`,
+            }}
+          >
+            apilado
+          </button>
+          <button
+            onClick={() => setLayout("vertical")}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-full transition-colors duration-150"
+            style={{
+              background: layout === "vertical" ? T.gold : T.panel,
+              color: layout === "vertical" ? T.ink : T.inkDim,
+              border: `1px solid ${T.line}`,
+            }}
+          >
+            vertical
+          </button>
+          <span style={{ color: T.inkDim, fontSize: 11 }}>·</span>
+          <button
+            onClick={() => setMarks("palito")}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-full transition-colors duration-150"
+            style={{
+              background: marks === "palito" ? T.gold : T.panel,
+              color: marks === "palito" ? T.ink : T.inkDim,
+              border: `1px solid ${T.line}`,
+            }}
+          >
+            palitos
+          </button>
+          <button
+            onClick={() => setMarks("fosforo")}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-full transition-colors duration-150"
+            style={{
+              background: marks === "fosforo" ? T.gold : T.panel,
+              color: marks === "fosforo" ? T.ink : T.inkDim,
+              border: `1px solid ${T.line}`,
+            }}
+          >
+            fósforos
+          </button>
+        </div>
+
         <Scoreboard
           nameA={nameA}
           nameB={nameB}
@@ -122,7 +174,17 @@ export default function PartidoPage({ params }) {
           scoreB={match.score_b}
           onChange={onChange}
           disabled={busy || !!match.winner_id}
+          layout={layout}
+          marks={marks}
         />
+
+        <Link
+          href={`/torneo/${match.tournament_id}`}
+          className="block text-center text-sm underline mt-6 font-semibold"
+          style={{ color: T.goldBright }}
+        >
+          Ver el fixture completo del torneo →
+        </Link>
       </div>
     </div>
   );

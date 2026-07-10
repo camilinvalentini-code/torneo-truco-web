@@ -1,5 +1,6 @@
 import "./globals.css";
 import { ThemeProvider } from "../lib/theme";
+import SiteFooter from "../components/SiteFooter";
 
 export const metadata = {
   title: "Torneo de Truco",
@@ -10,7 +11,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <SiteFooter />
+        </ThemeProvider>
       </body>
     </html>
   );

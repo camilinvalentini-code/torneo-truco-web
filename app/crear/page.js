@@ -1,14 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "../../lib/theme";
+import { useAuth } from "../../lib/useAuth";
 import { supabase } from "../../lib/supabaseClient";
 import ThemeToggleButton from "../../components/ThemeToggleButton";
 
-function randomToken() {
-  return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
-}
 function hoy() {
   return new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
@@ -16,6 +14,7 @@ function hoy() {
 export default function CrearTorneo() {
   const { T } = useTheme();
   const router = useRouter();
+  const { session, profile, loading: authLoading } = useAuth();
   const [nombre, setNombre] = useState("");
   const [ubicacion, setUbicacion] = useState("");
   const [fecha, setFecha] = useState(hoy());
@@ -24,6 +23,17 @@ export default function CrearTorneo() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (authLoading) return;
+    if (!session) {
+      router.push("/organizador/acceso");
+      return;
+    }
+    if (profile && profile.status !== "aprobado") {
+      router.push("/organizador/pendiente");
+    }
+  }, [authLoading, session, profile, router]);
+
   async function crear() {
     setError("");
     if (!nombre.trim() || !ubicacion.trim()) {
@@ -31,35 +41,28 @@ export default function CrearTorneo() {
       return;
     }
     setLoading(true);
-    const admin_token = randomToken();
     const { data, error: err } = await supabase
       .from("tournaments")
-      .insert({ nombre, ubicacion, fecha, categoria, repechaje, admin_token })
+      .insert({ nombre, ubicacion, fecha, categoria, repechaje, organizador_id: session.user.id })
       .select()
       .single();
     setLoading(false);
     if (err) {
-      setError("No se pudo crear el torneo. Revisá que la base de datos esté conectada (ver README).");
+      setError("No se pudo crear el torneo. Puede que tu cuenta todavía no esté aprobada.");
       console.error(err);
       return;
     }
-    router.push(`/torneo/${data.id}/admin?key=${admin_token}`);
-
-    try {
-      const saved = JSON.parse(window.localStorage.getItem("torneotruco:mis-torneos") || "[]");
-      saved.unshift({ id: data.id, admin_token, nombre: nombre || "(sin nombre)", categoria, fecha });
-      window.localStorage.setItem("torneotruco:mis-torneos", JSON.stringify(saved.slice(0, 20)));
-    } catch (e) {
-      /* si falla el guardado local no bloqueamos el flujo */
-    }
+    router.push(`/torneo/${data.id}/admin`);
   }
+
+  if (authLoading || !session || (profile && profile.status !== "aprobado")) return null;
 
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ background: T.bg }}>
       <div className="max-w-md mx-auto px-4 py-8">
         <div className="flex justify-between mb-4">
-          <Link href="/" className="text-xs underline" style={{ color: T.inkDim }}>
-            ← inicio
+          <Link href="/organizador/panel" className="text-xs underline" style={{ color: T.inkDim }}>
+            ← mi panel
           </Link>
           <ThemeToggleButton />
         </div>
