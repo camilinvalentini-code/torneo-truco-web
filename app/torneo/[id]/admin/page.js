@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { useTheme } from "../../../../lib/theme";
 import { supabase } from "../../../../lib/supabaseClient";
 import { buildMatchRows } from "../../../../lib/bracket";
+import { declareWinner } from "../../../../lib/matchLogic";
 import TeamList from "../../../../components/TeamList";
 import BracketDisplay from "../../../../components/BracketDisplay";
 import ThemeToggleButton from "../../../../components/ThemeToggleButton";
@@ -27,6 +28,10 @@ export default function AdminPage({ params, searchParams }) {
   const [origin, setOrigin] = useState("");
   const [qrTarget, setQrTarget] = useState(null); // match_token abierto en el modal de QR
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [editandoInfo, setEditandoInfo] = useState(false);
+  const [infoNombre, setInfoNombre] = useState("");
+  const [infoUbicacion, setInfoUbicacion] = useState("");
+  const [infoFecha, setInfoFecha] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
@@ -49,6 +54,9 @@ export default function AdminPage({ params, searchParams }) {
     setTeams(ts || []);
     setMatches(ms || []);
     setLoading(false);
+    setInfoNombre((prev) => prev || t.nombre || "");
+    setInfoUbicacion((prev) => prev || t.ubicacion || "");
+    setInfoFecha((prev) => prev || t.fecha || "");
   }, [id, key]);
 
   useEffect(() => {
@@ -114,6 +122,27 @@ export default function AdminPage({ params, searchParams }) {
     setQrDataUrl(dataUrl);
   }
 
+  async function guardarInfo() {
+    if (!infoNombre.trim() || !infoUbicacion.trim()) {
+      setError("El nombre y la ubicación son obligatorios.");
+      return;
+    }
+    setError("");
+    await supabase
+      .from("tournaments")
+      .update({ nombre: infoNombre.trim(), ubicacion: infoUbicacion.trim(), fecha: infoFecha.trim() })
+      .eq("id", id);
+    setEditandoInfo(false);
+    load();
+  }
+
+  async function forzarGanador(match, winnerId) {
+    const nombreEquipo = teamsById[winnerId]?.name || "este equipo";
+    if (!window.confirm(`¿Marcar a "${nombreEquipo}" como ganador de este partido?`)) return;
+    await declareWinner({ supabase, match, winnerId, tournamentId: id });
+    load();
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg, color: T.ink }}>
@@ -155,7 +184,58 @@ export default function AdminPage({ params, searchParams }) {
         </h1>
         <p className="text-center text-xs mb-1" style={{ color: T.inkDim }}>
           {[tournament.ubicacion, tournament.fecha, tournament.categoria].filter(Boolean).join(" · ")}
+          {" · "}
+          <button onClick={() => setEditandoInfo((v) => !v)} className="underline" style={{ color: T.inkDim }}>
+            ✏️ editar datos
+          </button>
         </p>
+
+        {editandoInfo && (
+          <div
+            className="rounded-2xl p-4 mb-4 border shadow-sm lg:max-w-md lg:mx-auto"
+            style={{ background: T.panel, borderColor: T.line }}
+          >
+            <div className="flex flex-col gap-2">
+              <input
+                value={infoNombre}
+                onChange={(e) => setInfoNombre(e.target.value)}
+                placeholder="Nombre del torneo*"
+                className="px-3 py-2 rounded-xl text-sm"
+                style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+              />
+              <input
+                value={infoUbicacion}
+                onChange={(e) => setInfoUbicacion(e.target.value)}
+                placeholder="Ubicación*"
+                className="px-3 py-2 rounded-xl text-sm"
+                style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+              />
+              <input
+                value={infoFecha}
+                onChange={(e) => setInfoFecha(e.target.value)}
+                placeholder="Fecha"
+                className="px-3 py-2 rounded-xl text-sm"
+                style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+              />
+              <div className="flex gap-2 mt-1">
+                <button
+                  onClick={guardarInfo}
+                  className="flex-1 py-2 rounded-xl font-bold text-sm"
+                  style={{ background: T.gold, color: T.ink }}
+                >
+                  Guardar
+                </button>
+                <button
+                  onClick={() => setEditandoInfo(false)}
+                  className="flex-1 py-2 rounded-xl font-bold text-sm"
+                  style={{ background: T.panelLight, color: T.ink }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {origin && (
           <p className="text-center text-sm mb-5">
             <a href={publicUrl} target="_blank" rel="noreferrer" className="underline font-bold" style={{ color: T.gold }}>
@@ -225,15 +305,15 @@ export default function AdminPage({ params, searchParams }) {
           </>
         ) : (
           <>
-            <div className="rounded-2xl p-4 mb-4 border shadow-sm lg:max-w-md" style={{ background: T.panel, borderColor: T.line }}>
+            <div className="rounded-2xl p-4 mb-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
               <h2 className="font-bold mb-2" style={{ color: T.gold }}>
                 Equipos y pagos
               </h2>
-              <TeamList teams={teams} onTogglePaid={togglePaid} />
+              <TeamList teams={teams} onTogglePaid={togglePaid} twoColumns />
             </div>
 
             <h2 className="font-bold mb-3" style={{ color: T.gold }}>
-              Cuadro principal — tocá "abrir anotador" para ver el QR de cada mesa
+              Cuadro principal — tocá un equipo para forzar el resultado, o "abrir anotador" para el QR de esa mesa
             </h2>
             <div className="mb-2">
               <BracketDisplayWithQr
@@ -241,6 +321,7 @@ export default function AdminPage({ params, searchParams }) {
                 teamsById={teamsById}
                 origin={origin}
                 onOpenQr={openQr}
+                onDeclareWinner={forzarGanador}
               />
             </div>
 
@@ -249,7 +330,13 @@ export default function AdminPage({ params, searchParams }) {
                 <h2 className="font-bold mb-3" style={{ color: T.gold }}>
                   Cuadro de repechaje
                 </h2>
-                <BracketDisplayWithQr matches={repMatches} teamsById={teamsById} origin={origin} onOpenQr={openQr} />
+                <BracketDisplayWithQr
+                  matches={repMatches}
+                  teamsById={teamsById}
+                  origin={origin}
+                  onOpenQr={openQr}
+                  onDeclareWinner={forzarGanador}
+                />
               </div>
             )}
           </>
@@ -287,11 +374,11 @@ export default function AdminPage({ params, searchParams }) {
 
 // Igual que BracketDisplay pero agrega un botón "ver QR" en vez del link directo,
 // para que el organizador lo pueda mostrar en pantalla o imprimir.
-function BracketDisplayWithQr({ matches, teamsById, onOpenQr }) {
+function BracketDisplayWithQr({ matches, teamsById, onOpenQr, onDeclareWinner }) {
   const { T } = useTheme();
   return (
     <div className="[&_a]:hidden">
-      <BracketDisplay matches={matches} teamsById={teamsById} />
+      <BracketDisplay matches={matches} teamsById={teamsById} adminMode onDeclareWinner={onDeclareWinner} />
       <div className="flex flex-col gap-2 mt-3">
         {matches
           .filter((m) => !m.bye && m.team1_id && m.team2_id && m.match_token)

@@ -2,21 +2,34 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "../lib/theme";
+import { supabase } from "../lib/supabaseClient";
 import SuitIcon from "../components/SuitIcon";
 import ThemeToggleButton from "../components/ThemeToggleButton";
 
 export default function Home() {
   const { T } = useTheme();
   const [misTorneos, setMisTorneos] = useState([]);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  function leerGuardados() {
+    try {
+      return JSON.parse(window.localStorage.getItem("torneotruco:mis-torneos") || "[]");
+    } catch (e) {
+      return [];
+    }
+  }
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem("torneotruco:mis-torneos") || "[]");
-      setMisTorneos(saved);
-    } catch (e) {
-      /* nada guardado todavía */
-    }
+    setMisTorneos(leerGuardados());
   }, []);
+
+  async function borrarTorneo(id) {
+    await supabase.from("tournaments").delete().eq("id", id);
+    const restantes = leerGuardados().filter((t) => t.id !== id);
+    window.localStorage.setItem("torneotruco:mis-torneos", JSON.stringify(restantes));
+    setMisTorneos(restantes);
+    setConfirmDelete(null);
+  }
 
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ background: T.bg }}>
@@ -47,16 +60,47 @@ export default function Home() {
             </h2>
             <div className="flex flex-col gap-2">
               {misTorneos.map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/torneo/${t.id}/admin?key=${t.admin_token}`}
-                  className="px-3 py-2 rounded-xl text-sm font-semibold transition-colors duration-200"
-                  style={{ background: T.panelLight, color: T.ink }}
-                >
-                  ⚔️ {t.nombre} <span style={{ color: T.inkDim, fontWeight: "normal" }}>({t.categoria})</span>
-                </Link>
+                <div key={t.id} className="flex items-center gap-2">
+                  <Link
+                    href={`/torneo/${t.id}/admin?key=${t.admin_token}`}
+                    className="flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-colors duration-200"
+                    style={{ background: T.panelLight, color: T.ink }}
+                  >
+                    🎴 {t.nombre} <span style={{ color: T.inkDim, fontWeight: "normal" }}>({t.categoria})</span>
+                  </Link>
+                  {confirmDelete === t.id ? (
+                    <>
+                      <button
+                        onClick={() => borrarTorneo(t.id)}
+                        className="text-xs font-bold px-2 py-2"
+                        style={{ color: T.redDim }}
+                      >
+                        confirmar
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        className="text-xs px-2 py-2"
+                        style={{ color: T.inkDim }}
+                      >
+                        no
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(t.id)}
+                      className="text-xs px-2 py-2"
+                      style={{ color: T.inkDim }}
+                      title="Borrar este torneo"
+                    >
+                      🗑
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
+            <p className="text-[11px] mt-2" style={{ color: T.inkDim }}>
+              ¿Te equivocaste al crear uno? Tocá el link para entrar y editar sus datos, o el 🗑 para borrarlo del todo.
+            </p>
           </div>
         )}
 
@@ -65,7 +109,7 @@ export default function Home() {
           className="block text-center py-4 rounded-2xl font-black text-lg mb-3 transition-all duration-200 hover:scale-105 active:scale-95"
           style={{ background: T.gold, color: T.ink }}
         >
-          ⚔️ Crear torneo nuevo
+          🎴 Crear torneo nuevo
         </Link>
         <Link
           href="/historial"

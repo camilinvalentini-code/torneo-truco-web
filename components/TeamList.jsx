@@ -3,10 +3,10 @@ import React from "react";
 import { useTheme } from "../lib/theme";
 import { INK_ON_LIGHT } from "../lib/theme";
 
-export default function TeamList({ teams, onTogglePaid, onRemove, editable }) {
+export default function TeamList({ teams, onTogglePaid, onRemove, editable, twoColumns }) {
   const { T } = useTheme();
   return (
-    <div className="flex flex-col gap-2">
+    <div className={twoColumns ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2"}>
       {teams.map((t) => (
         <div
           key={t.id}
@@ -25,7 +25,7 @@ export default function TeamList({ teams, onTogglePaid, onRemove, editable }) {
           </div>
           <button
             onClick={() => onTogglePaid(t.id, !t.paid)}
-            className="text-xs px-2 py-1 rounded-full font-bold transition-colors duration-200"
+            className="text-xs px-2 py-1 rounded-full font-bold transition-colors duration-200 flex-shrink-0"
             style={{
               background: t.paid ? T.gold : "transparent",
               color: t.paid ? INK_ON_LIGHT : T.inkDim,
@@ -35,7 +35,7 @@ export default function TeamList({ teams, onTogglePaid, onRemove, editable }) {
             {t.paid ? "Pagó" : "Debe"}
           </button>
           {editable && onRemove && (
-            <button onClick={() => onRemove(t.id)} className="text-xs px-2" style={{ color: T.redDim }}>
+            <button onClick={() => onRemove(t.id)} className="text-xs px-2 flex-shrink-0" style={{ color: T.redDim }}>
               Quitar
             </button>
           )}

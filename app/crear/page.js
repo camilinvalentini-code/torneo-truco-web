@@ -26,6 +26,10 @@ export default function CrearTorneo() {
 
   async function crear() {
     setError("");
+    if (!nombre.trim() || !ubicacion.trim()) {
+      setError("Faltan datos: el nombre y la ubicación del torneo son obligatorios.");
+      return;
+    }
     setLoading(true);
     const admin_token = randomToken();
     const { data, error: err } = await supabase
@@ -68,14 +72,14 @@ export default function CrearTorneo() {
             <input
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              placeholder="Nombre del torneo (ej: BOKA TALÓN)"
+              placeholder="Nombre del torneo* (ej: BOKA TALÓN)"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
             <input
               value={ubicacion}
               onChange={(e) => setUbicacion(e.target.value)}
-              placeholder="Ubicación (ej: Seis Monos Bar)"
+              placeholder="Ubicación* (ej: Seis Monos Bar)"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
