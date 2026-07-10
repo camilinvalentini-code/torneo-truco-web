@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "../../../lib/theme";
 import { supabase } from "../../../lib/supabaseClient";
@@ -9,56 +8,30 @@ import SuitIcon from "../../../components/SuitIcon";
 
 export default function AccesoOrganizador() {
   const { T } = useTheme();
-  const router = useRouter();
-  const [paso, setPaso] = useState("email"); // "email" | "codigo"
+  const [enviado, setEnviado] = useState(false);
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
-  const [codigo, setCodigo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function pedirCodigo() {
+  async function enviarLink() {
     if (!email.trim()) {
       setError("Ingresá tu email.");
       return;
     }
     setError("");
     setLoading(true);
+    const redirectTo = `${window.location.origin}/organizador/panel`;
     const { error: err } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { shouldCreateUser: true, data: { nombre: nombre.trim() } },
+      options: { shouldCreateUser: true, data: { nombre: nombre.trim() }, emailRedirectTo: redirectTo },
     });
     setLoading(false);
     if (err) {
-      setError("No se pudo enviar el código. Probá de nuevo en un minuto.");
+      setError("No se pudo enviar el link. Probá de nuevo en un minuto.");
       return;
     }
-    setPaso("codigo");
-  }
-
-  async function verificarCodigo() {
-    if (!codigo.trim()) return;
-    setError("");
-    setLoading(true);
-    const { data, error: err } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: codigo.trim(),
-      type: "email",
-    });
-    setLoading(false);
-    if (err || !data.session) {
-      setError("Código incorrecto o vencido. Pedí uno nuevo.");
-      return;
-    }
-
-    const { data: perfil } = await supabase.from("profiles").select("*").eq("id", data.session.user.id).single();
-    if (perfil?.role === "admin" && perfil?.status === "aprobado") {
-      router.push("/admin/panel");
-    } else if (perfil?.status === "aprobado") {
-      router.push("/organizador/panel");
-    } else {
-      router.push("/organizador/pendiente");
-    }
+    setEnviado(true);
   }
 
   return (
@@ -77,13 +50,13 @@ export default function AccesoOrganizador() {
           Acceso organizadores
         </h1>
         <p className="text-center text-sm mb-6" style={{ color: T.inkDim }}>
-          {paso === "email"
-            ? "Ingresá tu email — te mandamos un código para entrar, sin contraseña."
-            : `Te enviamos un código a ${email}. Puede tardar un minuto y revisá spam.`}
+          {enviado
+            ? `Te mandamos un mail a ${email}. Abrilo y tocá el link — con eso quedás adentro. Puede tardar un minuto, revisá spam.`
+            : "Ingresá tu email — te mandamos un link para entrar, sin contraseña."}
         </p>
 
-        <div className="rounded-2xl p-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
-          {paso === "email" ? (
+        {!enviado && (
+          <div className="rounded-2xl p-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
             <div className="flex flex-col gap-2">
               <input
                 value={nombre}
@@ -101,38 +74,22 @@ export default function AccesoOrganizador() {
                 style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
               />
               <button
-                onClick={pedirCodigo}
+                onClick={enviarLink}
                 disabled={loading}
                 className="py-2 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-60"
                 style={{ background: T.gold, color: T.ink }}
               >
-                {loading ? "Enviando…" : "Enviarme el código"}
+                {loading ? "Enviando…" : "Enviarme el link"}
               </button>
             </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <input
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value)}
-                placeholder="Código de 6 dígitos"
-                inputMode="numeric"
-                className="px-3 py-2 rounded-xl text-sm text-center tracking-widest text-lg font-bold"
-                style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
-              />
-              <button
-                onClick={verificarCodigo}
-                disabled={loading}
-                className="py-2 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-60"
-                style={{ background: T.gold, color: T.ink }}
-              >
-                {loading ? "Verificando…" : "Entrar"}
-              </button>
-              <button onClick={() => setPaso("email")} className="text-xs underline mt-1" style={{ color: T.inkDim }}>
-                usar otro email
-              </button>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {enviado && (
+          <button onClick={() => setEnviado(false)} className="w-full text-center text-xs underline mt-2" style={{ color: T.inkDim }}>
+            usar otro email
+          </button>
+        )}
 
         {error && (
           <p className="text-sm text-center mt-3" style={{ color: T.goldBright }}>
