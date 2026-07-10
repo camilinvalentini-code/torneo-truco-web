@@ -66,7 +66,7 @@ export default function Home() {
                     className="flex-1 px-3 py-2 rounded-xl text-sm font-semibold transition-colors duration-200"
                     style={{ background: T.panelLight, color: T.ink }}
                   >
-                    🎴 {t.nombre} <span style={{ color: T.inkDim, fontWeight: "normal" }}>({t.categoria})</span>
+                    ⚔️ {t.nombre} <span style={{ color: T.inkDim, fontWeight: "normal" }}>({t.categoria})</span>
                   </Link>
                   {confirmDelete === t.id ? (
                     <>
@@ -109,7 +109,7 @@ export default function Home() {
           className="block text-center py-4 rounded-2xl font-black text-lg mb-3 transition-all duration-200 hover:scale-105 active:scale-95"
           style={{ background: T.gold, color: T.ink }}
         >
-          🎴 Crear torneo nuevo
+          ⚔️ Crear torneo nuevo
         </Link>
         <Link
           href="/historial"
