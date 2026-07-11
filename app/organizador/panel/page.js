@@ -61,7 +61,7 @@ export default function PanelOrganizador() {
           </Link>
           <div className="flex gap-3 items-center">
             <button onClick={salir} className="text-xs underline" style={{ color: T.inkDim }}>
-              Cerrar sesión
+              cerrar sesión
             </button>
             <ThemeToggleButton />
           </div>

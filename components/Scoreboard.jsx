@@ -56,8 +56,18 @@ function SectionApilado({ label, count, marks, T }) {
 
 function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled }) {
   const Team = ({ label, score, onPlus, onMinus }) => (
-    <div className="py-4">
-      <div className="font-extrabold text-lg mb-2" style={{ color: T.ink }}>
+    <div
+      onClick={() => !disabled && onPlus()}
+      className="py-4 px-2 rounded-xl transition-colors duration-150"
+      style={{ cursor: disabled ? "default" : "pointer" }}
+      onMouseDown={(e) => {
+        if (!disabled) e.currentTarget.style.background = "rgba(234,194,122,0.12)";
+      }}
+      onMouseUp={(e) => {
+        e.currentTarget.style.background = "transparent";
+      }}
+    >
+      <div className="font-extrabold text-lg mb-2 text-center" style={{ color: T.ink }}>
         {label}
       </div>
       <div className="flex items-start">
@@ -73,28 +83,26 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
           / 30
         </span>
       </div>
-      <div className="flex gap-2 mt-3">
+      <div className="text-center text-[11px] mt-1" style={{ color: T.inkDim }}>
+        tocá acá para sumar un tanto
+      </div>
+      <div className="flex justify-center mt-2">
         <button
-          onClick={onMinus}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMinus();
+          }}
           disabled={disabled}
-          className="flex-1 py-2.5 rounded-xl text-sm font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
+          className="px-6 py-1.5 rounded-full text-xs font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
           style={{ background: T.panelLight, color: T.redDim, border: `1px solid ${T.line}` }}
         >
-          −1
-        </button>
-        <button
-          onClick={onPlus}
-          disabled={disabled}
-          className="flex-1 py-2.5 rounded-xl text-sm font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
-          style={{ background: T.gold, color: T.ink }}
-        >
-          +1 tanto
+          −1 (deshacer)
         </button>
       </div>
     </div>
   );
   return (
-    <div className="rounded-2xl border shadow-sm px-5" style={{ background: T.panel, borderColor: T.line }}>
+    <div className="rounded-2xl border shadow-sm px-3" style={{ background: T.panel, borderColor: T.line }}>
       <Team label={nameA} score={scoreA} onPlus={() => onChange("A", 1)} onMinus={() => onChange("A", -1)} />
       <div style={{ borderTop: `2px dashed ${T.line}` }} />
       <Team label={nameB} score={scoreB} onPlus={() => onChange("B", 1)} onMinus={() => onChange("B", -1)} />
@@ -105,7 +113,11 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
 /* ---- vertical: equipo A | equipo B lado a lado, sin separar malas/buenas ---- */
 function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled }) {
   const Col = ({ label, score, onPlus, onMinus }) => (
-    <div className="flex-1 text-center py-4">
+    <div
+      onClick={() => !disabled && onPlus()}
+      className="flex-1 text-center py-4 px-1 rounded-xl"
+      style={{ cursor: disabled ? "default" : "pointer" }}
+    >
       <div className="font-extrabold text-base mb-3 truncate" style={{ color: T.ink }}>
         {label}
       </div>
@@ -122,19 +134,17 @@ function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disa
           /30
         </span>
       </div>
-      <div className="flex flex-col gap-2 mt-3">
+      <div className="text-[10px] mt-1" style={{ color: T.inkDim }}>
+        tocá para sumar
+      </div>
+      <div className="flex justify-center mt-2">
         <button
-          onClick={onPlus}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMinus();
+          }}
           disabled={disabled}
-          className="py-2 rounded-xl text-sm font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
-          style={{ background: T.gold, color: T.ink }}
-        >
-          +1
-        </button>
-        <button
-          onClick={onMinus}
-          disabled={disabled}
-          className="py-1.5 rounded-xl text-xs font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
+          className="px-4 py-1.5 rounded-full text-[11px] font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
           style={{ background: T.panelLight, color: T.redDim, border: `1px solid ${T.line}` }}
         >
           −1
