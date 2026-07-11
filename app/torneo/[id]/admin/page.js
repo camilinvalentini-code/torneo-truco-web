@@ -230,6 +230,36 @@ export default function AdminPage({ params }) {
     load();
   }
 
+  function repechajeSinJugar() {
+    if (!repMatches.length) return true;
+    return repMatches.every((m) => !m.winner_id);
+  }
+
+  async function quitarDeRepechaje(teamIdAQuitar) {
+    const nombre = teamsById[teamIdAQuitar]?.name || "este equipo";
+    if (!window.confirm(`¿Sacar a "${nombre}" del repechaje? Se rearma el cuadro con los que queden.`)) return;
+
+    const participantes = new Set();
+    repMatches.forEach((m) => {
+      if (m.team1_id) participantes.add(m.team1_id);
+      if (m.team2_id) participantes.add(m.team2_id);
+    });
+    participantes.delete(teamIdAQuitar);
+    const restantes = [...participantes];
+
+    await supabase.from("matches").delete().eq("tournament_id", id).eq("bracket", "repechaje");
+
+    if (restantes.length >= 2) {
+      await supabase.rpc("generar_bracket", { p_tournament_id: id, p_bracket: "repechaje", p_team_ids: restantes });
+      await supabase.from("tournaments").update({ repechaje_champion_id: null }).eq("id", id);
+    } else if (restantes.length === 1) {
+      await supabase.from("tournaments").update({ repechaje_champion_id: restantes[0] }).eq("id", id);
+    } else {
+      await supabase.from("tournaments").update({ repechaje_champion_id: null }).eq("id", id);
+    }
+    load();
+  }
+
   async function simularTorneoCompleto() {
     if (!window.confirm("Esto va a completar TODO el torneo con resultados al azar (para testear). ¿Seguro?")) return;
     setSimulando(true);
@@ -544,6 +574,37 @@ export default function AdminPage({ params }) {
                     <h2 className="font-bold mb-3" style={{ color: T.gold }}>
                       Cuadro de repechaje
                     </h2>
+
+                    {repechajeSinJugar() && (
+                      <div className="rounded-2xl p-4 mb-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
+                        <p className="text-xs mb-2" style={{ color: T.inkDim }}>
+                          ¿Alguno no va a pagar de nuevo para el repechaje? Sacalo de la lista — el cuadro se
+                          rearma solo con los que queden.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {[...new Set(repMatches.flatMap((m) => [m.team1_id, m.team2_id]).filter(Boolean))].map(
+                            (tid) => (
+                              <span
+                                key={tid}
+                                className="text-xs pl-3 pr-1.5 py-1.5 rounded-full font-semibold flex items-center gap-1.5"
+                                style={{ background: T.panelLight, color: T.ink }}
+                              >
+                                {teamsById[tid]?.name}
+                                <button
+                                  onClick={() => quitarDeRepechaje(tid)}
+                                  className="w-5 h-5 rounded-full flex items-center justify-center"
+                                  style={{ background: T.redDim, color: "#FFFFFF" }}
+                                  title="Sacar del repechaje"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <BracketDisplayWithQr
                       matches={repMatches}
                       teamsById={teamsById}
@@ -681,24 +742,67 @@ function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
 // para que el organizador lo pueda mostrar en pantalla o imprimir.
 function BracketDisplayWithQr({ matches, teamsById, onOpenQr, onDeclareWinner }) {
   const { T } = useTheme();
+  const conQr = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && m.match_token);
+  const pendientes = conQr.filter((m) => !m.winner_id);
+  const finalizados = conQr.filter((m) => m.winner_id);
+
+  const Fila = ({ m, clickable }) => (
+    <button
+      onClick={clickable ? () => onOpenQr(m.match_token) : undefined}
+      className="w-full text-left px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3 transition-colors duration-150"
+      style={{
+        background: clickable ? T.panel : T.panelLight,
+        border: `1px solid ${T.line}`,
+        cursor: clickable ? "pointer" : "default",
+        opacity: clickable ? 1 : 0.75,
+      }}
+    >
+      <span className="truncate" style={{ color: T.ink }}>
+        <span style={{ color: m.winner_id === m.team1_id ? T.goldBright : T.inkDim }}>
+          {teamsById[m.team1_id]?.name}
+        </span>
+        <span style={{ color: T.inkDim }}> vs </span>
+        <span style={{ color: m.winner_id === m.team2_id ? T.goldBright : T.inkDim }}>
+          {teamsById[m.team2_id]?.name}
+        </span>
+      </span>
+      {clickable && (
+        <span className="text-xs font-bold flex-shrink-0" style={{ color: T.goldBright }}>
+          📱 ver QR
+        </span>
+      )}
+    </button>
+  );
+
   return (
     <div className="[&_a]:hidden">
       <BracketDisplay matches={matches} teamsById={teamsById} adminMode onDeclareWinner={onDeclareWinner} />
-      <div className="flex flex-col gap-2 mt-3">
-        {matches
-          .filter((m) => !m.bye && m.team1_id && m.team2_id && m.match_token)
-          .map((m) => (
-            <button
-              key={m.id}
-              onClick={() => onOpenQr(m.match_token)}
-              className="text-xs underline text-left"
-              style={{ color: T.goldBright }}
-            >
-              ver QR: {teamsById[m.team1_id]?.name} vs {teamsById[m.team2_id]?.name}
-              {m.winner_id ? " (ya jugado)" : ""}
-            </button>
-          ))}
-      </div>
+
+      {pendientes.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: T.gold }}>
+            Por jugar ({pendientes.length})
+          </h3>
+          <div className="flex flex-col gap-2">
+            {pendientes.map((m) => (
+              <Fila key={m.id} m={m} clickable />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {finalizados.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: T.inkDim }}>
+            Tanteadores partidos finalizados ({finalizados.length})
+          </h3>
+          <div className="flex flex-col gap-2">
+            {finalizados.map((m) => (
+              <Fila key={m.id} m={m} clickable={false} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

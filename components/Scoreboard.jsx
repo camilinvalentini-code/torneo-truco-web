@@ -93,7 +93,7 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
             onMinus();
           }}
           disabled={disabled}
-          className="px-6 py-1.5 rounded-full text-xs font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
+          className="px-8 py-3 rounded-full text-base font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
           style={{ background: T.panelLight, color: T.redDim, border: `1px solid ${T.line}` }}
         >
           −1 (deshacer)
@@ -144,7 +144,7 @@ function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disa
             onMinus();
           }}
           disabled={disabled}
-          className="px-4 py-1.5 rounded-full text-[11px] font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
+          className="px-6 py-2.5 rounded-full text-sm font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
           style={{ background: T.panelLight, color: T.redDim, border: `1px solid ${T.line}` }}
         >
           −1
