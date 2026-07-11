@@ -15,6 +15,7 @@ export default function PanelAdmin() {
   const [pendientes, setPendientes] = useState([]);
   const [organizadores, setOrganizadores] = useState([]);
   const [torneos, setTorneos] = useState([]);
+  const [perfilesPorId, setPerfilesPorId] = useState({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -25,10 +26,14 @@ export default function PanelAdmin() {
       .eq("status", "aprobado")
       .eq("role", "organizador")
       .order("nombre");
+    const { data: todos } = await supabase.from("profiles").select("id, nombre, email");
     const { data: ts } = await supabase.from("tournaments").select("*").order("created_at", { ascending: false });
+    const mapa = {};
+    (todos || []).forEach((p) => (mapa[p.id] = p));
     setPendientes(pend || []);
     setOrganizadores(aprob || []);
     setTorneos(ts || []);
+    setPerfilesPorId(mapa);
     setLoading(false);
   }, []);
 
@@ -81,9 +86,12 @@ export default function PanelAdmin() {
           <SuitIcon suit="oro" size={20} />
           <SuitIcon suit="copa" size={20} />
         </div>
-        <h1 className="text-2xl font-black text-center mb-6" style={{ color: T.ink, fontFamily: "Georgia, serif" }}>
+        <h1 className="text-2xl font-black text-center mb-1" style={{ color: T.ink, fontFamily: "Georgia, serif" }}>
           Panel de administrador
         </h1>
+        <p className="text-center text-xs mb-6" style={{ color: T.inkDim }}>
+          Conectado como <strong style={{ color: T.gold }}>{profile.nombre || profile.email}</strong> ({profile.email})
+        </p>
 
         <Link
           href="/admin/jugadores"
@@ -150,17 +158,25 @@ export default function PanelAdmin() {
           Todos los torneos ({torneos.length})
         </h2>
         <div className="flex flex-col gap-2">
-          {torneos.map((t) => (
-            <Link
-              key={t.id}
-              href={`/torneo/${t.id}/admin`}
-              className="px-4 py-3 rounded-xl text-sm transition-colors duration-200"
-              style={{ background: T.panel, color: T.ink, border: `1px solid ${T.line}` }}
-            >
-              🎴 {t.nombre} <span style={{ color: T.inkDim }}>({t.categoria} · {t.ubicacion})</span>
-              {t.champion_id && <span className="ml-2">🏆</span>}
-            </Link>
-          ))}
+          {torneos.map((t) => {
+            const org = perfilesPorId[t.organizador_id];
+            return (
+              <Link
+                key={t.id}
+                href={`/torneo/${t.id}/admin`}
+                className="px-4 py-3 rounded-xl text-sm transition-colors duration-200"
+                style={{ background: T.panel, color: T.ink, border: `1px solid ${T.line}` }}
+              >
+                <div>
+                  🎴 {t.nombre} <span style={{ color: T.inkDim }}>({t.categoria} · {t.ubicacion})</span>
+                  {t.champion_id && <span className="ml-2">🏆</span>}
+                </div>
+                <div className="text-xs mt-0.5" style={{ color: T.inkDim }}>
+                  organizador: {org ? org.nombre || org.email : "sin asignar"}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
