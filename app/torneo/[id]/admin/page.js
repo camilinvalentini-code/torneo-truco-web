@@ -579,23 +579,25 @@ function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
                 className="rounded-2xl border p-3 shadow-sm flex flex-col gap-2"
                 style={{ background: T.panel, borderColor: T.line }}
               >
-                <button
-                  onClick={() => onDeclareWinner(m, m.team1_id)}
-                  className="text-sm font-semibold text-left px-2 py-1.5 rounded-lg transition-colors duration-150"
-                  style={{ color: T.ink }}
-                >
-                  {teamsById[m.team1_id]?.name}
-                </button>
-                <div className="text-center text-xs" style={{ color: T.inkDim }}>
-                  vs
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => onDeclareWinner(m, m.team1_id)}
+                    className="text-sm font-semibold text-right px-2 py-1.5 rounded-lg transition-colors duration-150 flex-1 truncate"
+                    style={{ color: T.ink }}
+                  >
+                    {teamsById[m.team1_id]?.name}
+                  </button>
+                  <span className="text-xs flex-shrink-0" style={{ color: T.inkDim }}>
+                    vs
+                  </span>
+                  <button
+                    onClick={() => onDeclareWinner(m, m.team2_id)}
+                    className="text-sm font-semibold text-left px-2 py-1.5 rounded-lg transition-colors duration-150 flex-1 truncate"
+                    style={{ color: T.ink }}
+                  >
+                    {teamsById[m.team2_id]?.name}
+                  </button>
                 </div>
-                <button
-                  onClick={() => onDeclareWinner(m, m.team2_id)}
-                  className="text-sm font-semibold text-left px-2 py-1.5 rounded-lg transition-colors duration-150"
-                  style={{ color: T.ink }}
-                >
-                  {teamsById[m.team2_id]?.name}
-                </button>
                 <button
                   onClick={() => onOpenQr(m.match_token)}
                   className="mt-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
