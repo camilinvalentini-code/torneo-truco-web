@@ -1,64 +1,80 @@
-# Torneo de Truco
+# Torneo de Truco — web (con base de datos compartida y QR por mesa)
 
-Página para organizar torneos de truco 2v2 y 3v3 sin lápiz ni papel. Armás el cuadro, sorteás, y cada mesa anota sus propios puntos desde el celular escaneando un QR — el cuadro general se va actualizando solo, en tiempo real.
+App completa para organizar torneos de truco 2v2/3v3: creación del torneo,
+anotación de equipos, sorteo automático, cuadro en vivo, repechaje, e historial
+de campeones. Cada partido tiene su propio link/QR: la mesa que juega ese
+partido escanea y anota sus puntos desde su propio celular, en tiempo real,
+sin poder tocar los partidos de las otras mesas.
 
-Vive en **torneotruco.com.ar**.
+Ya se probó que compila (`next build`) sin errores. Lo único que falta para
+que funcione de verdad es crear tu base de datos gratis en Supabase y
+conectarla — son 10 minutos, pasos abajo.
 
-## Cómo está armado
+## Paso 1 — Crear el proyecto en Supabase (gratis)
+1. Andá a https://supabase.com → "Start your project" → creá una cuenta
+   (podés usar la misma cuenta de GitHub).
+2. "New project" → ponele un nombre (ej: `torneo-truco`) → elegí una
+   contraseña de base de datos (guardala, no la vas a necesitar de nuevo si
+   no la perdés) → región más cercana (ej: São Paulo) → "Create new project".
+   Tarda 1-2 minutos en levantar.
 
-Tres tipos de acceso, sin que nadie necesite pasarse links a mano:
+## Paso 2 — Crear las tablas
+1. En el menú de la izquierda: **SQL Editor** → **New query**.
+2. Abrí el archivo `supabase-schema.sql` de este proyecto, copiá todo su
+   contenido, pegalo ahí, y tocá **Run**.
+3. Deberías ver "Success. No rows returned" — ya están creadas las tablas
+   `tournaments`, `teams` y `matches`, con tiempo real activado.
 
-- **Admin** — aprueba organizadores nuevos y puede ver/gestionar cualquier torneo.
-- **Organizador** (los bares: Vidon, Wort, Bodegón Pirata, etc.) — se registra con su email, pide un link de acceso (sin contraseña), y una vez aprobado maneja sus propios torneos: crea, anota equipos, sortea, reparte los QR. Puede ver en vivo los torneos de otros organizadores, pero no tocarlos.
-- **Competidor** — no necesita cuenta. Entra solo con el QR de su mesa, anota sus puntos, y desde ahí también puede ver el fixture completo del torneo.
+## Paso 3 — Copiar tus claves
+1. En Supabase: **Project Settings** (ícono de tuerca) → **API**.
+2. Copiá el **Project URL** y la **anon public key**.
 
-Repechaje opcional, historial de campeones, modo claro/oscuro, y 4 skins para el tanteador (palitos o fósforos, apilado o lado a lado — cada uno elige la suya, se guarda por dispositivo).
+## Paso 4 — Conectar el proyecto con esas claves
+- **Si vas a probarlo en tu compu primero:**
+  Creá un archivo `.env.local` en la raíz del proyecto (mirá `.env.example`
+  como modelo) y pegá ahí tu URL y tu anon key. Después:
+  ```
+  npm install
+  npm run dev
+  ```
+  Abrí http://localhost:3000
 
-## Antes de arrancar
+- **Si lo subís directo a Vercel (recomendado para el sábado):**
+  No hace falta `.env.local`. En Vercel, al importar el proyecto, andá a
+  **Environment Variables** y cargá ahí las dos:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Corre sobre Next.js con Supabase como base de datos.
+## Paso 5 — Subir a GitHub y desplegar en Vercel
+(Mismos pasos que ya charlamos)
+1. Subís esta carpeta a un repositorio nuevo en GitHub.
+2. En vercel.com → "Add New Project" → elegís ese repo.
+3. Antes de tocar "Deploy", cargás las 2 variables de entorno del Paso 4.
+4. "Deploy". En 1-2 minutos tenés tu link público (`*.vercel.app`).
+5. Cuando quieras, en Settings → Domains agregás `torneotruco.com.ar` y
+   apuntás el DNS desde DonWeb.
 
-### 1. Base en Supabase
+## Cómo se usa el día del torneo
+1. Entrás a la home → "Crear torneo nuevo" → cargás nombre, lugar, fecha,
+   categoría, si tiene repechaje.
+2. Te lleva directo al **panel de organizador** (guardá ese link — tiene una
+   clave secreta en la URL, es el único que puede tocar el torneo).
+3. Anotás los equipos, tocás "Hacer el sorteo".
+4. Por cada partido del cuadro, tocás "ver QR" y se lo mostrás/imprimís a esa
+   mesa. Ellos escanean y anotan sus propios puntos.
+5. Vos (y cualquiera con el link público del torneo) ven el cuadro
+   actualizarse solo, partido por partido, hasta el campeón.
 
-- Cuenta en [supabase.com](https://supabase.com) → *New project* → nombre, contraseña, región São Paulo.
-- *SQL Editor* → *New query* → pegar el contenido de `supabase-schema.sql` → *Run*.
-- Después, pegar y correr también `supabase-schema-v2-roles.sql` (agrega el sistema de cuentas encima).
-- *Authentication → Providers*: confirmar que Email esté activo.
-- *Authentication → URL Configuration*: Site URL = `https://torneotruco.com.ar`, y agregar `https://torneotruco.com.ar/organizador/panel` en Redirect URLs.
-- *Project Settings → API*: copiar el **Project URL** y la **anon/publishable key**.
-
-### 2. Volverte Admin (una sola vez, a mano)
-
-No hay nadie que te pueda aprobar a vos — el primer admin se crea manual:
-1. Registrate en `/organizador/acceso` con tu email real.
-2. En Supabase → *Table Editor → profiles*, buscá tu fila y cambiá `role` a `admin` y `status` a `aprobado`.
-3. De ahí en adelante, aprobás al resto de los organizadores desde tu propio panel en la web.
-
-### 3. Correrlo local (opcional)
-
-Con un `.env.local` (mirá `.env.example`) cargado con las dos claves de Supabase:
-
-```
-npm install
-npm run dev
-```
-
-### 4. Desplegar
-
-Repo en GitHub → importar en Vercel → cargar `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` en Environment Variables → Deploy. El dominio propio se agrega en Settings → Domains, apuntando los nameservers a `ns1.vercel-dns.com` / `ns2.vercel-dns.com` desde el proveedor del dominio.
-
-## Uso el día del torneo
-
-1. El organizador entra a su panel → crea el torneo (nombre, lugar, fecha, categoría).
-2. Anota equipos → Hace el sorteo.
-3. Por cada partido, muestra el QR a esa mesa. Ellos anotan.
-4. El cuadro se completa solo hasta el campeón. Cualquiera puede seguirlo en vivo desde el link público, o desde `/en-vivo` para encontrar torneos sin que le pasen nada.
-
-## Para tener en cuenta
-
-Los partidos (mesa por QR) no tienen cuenta ni contraseña — la seguridad ahí es que el token del link es imposible de adivinar. Las acciones que sí importan (crear/editar un torneo, aprobar organizadores) están protegidas de verdad a nivel de base de datos (Row Level Security de Supabase), no solo escondidas en la interfaz.
-
-Si dos mesas terminan un partido justo al mismo tiempo, hay una chance mínima de que el repechaje se duplique. Para un torneo entre amigos no debería pasar nunca, y si pasa se borra el duplicado desde Supabase a mano.
-
----
-🎴 [@truco.cordoba](https://instagram.com/truco.cordoba)
+## Notas honestas
+- No lo pude probar contra una base de datos real desde acá (no tengo forma
+  de crear tu cuenta de Supabase), pero sí verifiqué que todo el código
+  compila limpio. Los primeros bugs reales van a aparecer recién cuando lo
+  uses de verdad — contame apenas los veas y los arreglamos.
+- El sistema no tiene contraseñas de usuario: la seguridad de cada partido es
+  que su link/QR es un código imposible de adivinar. El panel de organizador
+  funciona igual, con su propia clave en la URL. No compartas esos links con
+  cualquiera.
+- Si dos mesas terminan su partido en el mismo segundo justo, hay una
+  posibilidad remota de que el repechaje se genere dos veces. Para un torneo
+  chico de amigos es un riesgo bajísimo; si pasara, se soluciona borrando el
+  duplicado desde Supabase (te ayudo si llega a pasar).

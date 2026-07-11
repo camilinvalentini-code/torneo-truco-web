@@ -7,8 +7,9 @@ import BracketDisplay from "../../../components/BracketDisplay";
 import ThemeToggleButton from "../../../components/ThemeToggleButton";
 import SuitIcon from "../../../components/SuitIcon";
 
-export default function TorneoPublico({ params }) {
+export default function TorneoPublico({ params, searchParams }) {
   const { id } = params;
+  const volverToken = searchParams?.volver;
   const { T } = useTheme();
   const [tournament, setTournament] = useState(null);
   const [teams, setTeams] = useState([]);
@@ -131,6 +132,16 @@ export default function TorneoPublico({ params }) {
           </>
         )}
       </div>
+
+      {volverToken && (
+        <Link
+          href={`/partido/${volverToken}`}
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full font-bold text-sm shadow-lg transition-transform duration-150 active:scale-95"
+          style={{ background: T.gold, color: T.ink }}
+        >
+          ← Volver a mi partido
+        </Link>
+      )}
     </div>
   );
 }

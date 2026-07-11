@@ -179,7 +179,7 @@ export default function PartidoPage({ params }) {
         />
 
         <Link
-          href={`/torneo/${match.tournament_id}`}
+          href={`/torneo/${match.tournament_id}?volver=${token}`}
           className="block text-center text-sm underline mt-6 font-semibold"
           style={{ color: T.goldBright }}
         >

@@ -23,7 +23,9 @@ export default function AdminPage({ params }) {
   const [loading, setLoading] = useState(true);
 
   const [newName, setNewName] = useState("");
-  const [newPlayers, setNewPlayers] = useState("");
+  const [jugadorInput, setJugadorInput] = useState("");
+  const [jugadoresChips, setJugadoresChips] = useState([]); // [{id?, name}]
+  const [sugerencias, setSugerencias] = useState([]);
   const [error, setError] = useState("");
   const [origin, setOrigin] = useState("");
   const [qrTarget, setQrTarget] = useState(null); // match_token abierto en el modal de QR
@@ -32,6 +34,8 @@ export default function AdminPage({ params }) {
   const [infoNombre, setInfoNombre] = useState("");
   const [infoUbicacion, setInfoUbicacion] = useState("");
   const [infoFecha, setInfoFecha] = useState("");
+  const [vista, setVista] = useState("mesas"); // "mesas" | "cuadro"
+  const [mostrarEquipos, setMostrarEquipos] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
@@ -45,8 +49,27 @@ export default function AdminPage({ params }) {
     }
     const { data: ts } = await supabase.from("teams").select("*").eq("tournament_id", id).order("created_at");
     const { data: ms } = await supabase.from("matches").select("*").eq("tournament_id", id);
+
+    const teamIds = (ts || []).map((tm) => tm.id);
+    let teamsConJugadores = ts || [];
+    if (teamIds.length > 0) {
+      const { data: tp } = await supabase
+        .from("team_players")
+        .select("team_id, players(name)")
+        .in("team_id", teamIds);
+      const porEquipo = {};
+      (tp || []).forEach((row) => {
+        porEquipo[row.team_id] = porEquipo[row.team_id] || [];
+        if (row.players?.name) porEquipo[row.team_id].push(row.players.name);
+      });
+      teamsConJugadores = (ts || []).map((tm) => ({
+        ...tm,
+        players: porEquipo[tm.id]?.length ? porEquipo[tm.id].join(", ") : tm.players,
+      }));
+    }
+
     setTournament(t);
-    setTeams(ts || []);
+    setTeams(teamsConJugadores);
     setMatches(ms || []);
     setLoading(false);
     setInfoNombre((prev) => prev || t.nombre || "");
@@ -72,6 +95,52 @@ export default function AdminPage({ params }) {
     return () => supabase.removeChannel(channel);
   }, [id, load]);
 
+  function normalizarNombre(s) {
+    return s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  async function buscarJugadores(texto) {
+    setJugadorInput(texto);
+    if (texto.trim().length < 2) {
+      setSugerencias([]);
+      return;
+    }
+    const { data } = await supabase.rpc("buscar_jugadores", { q: texto.trim() });
+    setSugerencias(data || []);
+  }
+  function agregarChip(jugador) {
+    const yaEsta = jugadoresChips.some((j) => normalizarNombre(j.name) === normalizarNombre(jugador.name));
+    if (!yaEsta) setJugadoresChips((prev) => [...prev, jugador]);
+    setJugadorInput("");
+    setSugerencias([]);
+  }
+  function quitarChip(name) {
+    setJugadoresChips((prev) => prev.filter((j) => j.name !== name));
+  }
+  function onJugadorKeyDown(e) {
+    if (e.key === "Enter" && jugadorInput.trim()) {
+      e.preventDefault();
+      agregarChip({ name: jugadorInput.trim() });
+    }
+  }
+
+  async function ensurePlayerId(name) {
+    const norm = normalizarNombre(name);
+    const { data: existente } = await supabase.from("players").select("id").eq("name_norm", norm).limit(1);
+    if (existente && existente.length > 0) return existente[0].id;
+    const { data: creado, error: err } = await supabase
+      .from("players")
+      .insert({ name: name.trim(), name_norm: norm })
+      .select("id")
+      .single();
+    if (err) return null;
+    return creado.id;
+  }
+
   async function addTeam() {
     const name = newName.trim();
     if (!name) return;
@@ -81,15 +150,25 @@ export default function AdminPage({ params }) {
       return;
     }
     setError("");
-    const { error: err } = await supabase
+    const { data: nuevoEquipo, error: err } = await supabase
       .from("teams")
-      .insert({ tournament_id: id, name, players: newPlayers.trim(), paid: false });
+      .insert({ tournament_id: id, name, players: "", paid: false })
+      .select()
+      .single();
     if (err) {
       setError("No se pudo agregar el equipo.");
       return;
     }
+    for (const j of jugadoresChips) {
+      const playerId = await ensurePlayerId(j.name);
+      if (playerId) {
+        await supabase.from("team_players").insert({ team_id: nuevoEquipo.id, player_id: playerId });
+      }
+    }
     setNewName("");
-    setNewPlayers("");
+    setJugadoresChips([]);
+    setJugadorInput("");
+    setSugerencias([]);
     load();
   }
   async function removeTeam(teamId) {
@@ -281,13 +360,51 @@ export default function AdminPage({ params }) {
                     className="px-3 py-2 rounded-xl text-sm"
                     style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
                   />
-                  <input
-                    value={newPlayers}
-                    onChange={(e) => setNewPlayers(e.target.value)}
-                    placeholder="Jugadores (opcional)"
-                    className="px-3 py-2 rounded-xl text-sm"
-                    style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
-                  />
+
+                  {jugadoresChips.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {jugadoresChips.map((j) => (
+                        <span
+                          key={j.name}
+                          className="text-xs px-2 py-1 rounded-full font-semibold flex items-center gap-1"
+                          style={{ background: T.panelLight, color: T.ink }}
+                        >
+                          {j.name}
+                          <button onClick={() => quitarChip(j.name)} style={{ color: T.redDim }}>
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="relative">
+                    <input
+                      value={jugadorInput}
+                      onChange={(e) => buscarJugadores(e.target.value)}
+                      onKeyDown={onJugadorKeyDown}
+                      placeholder="Agregar jugador (Enter para sumarlo)"
+                      className="w-full px-3 py-2 rounded-xl text-sm"
+                      style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+                    />
+                    {sugerencias.length > 0 && (
+                      <div
+                        className="absolute z-10 w-full mt-1 rounded-xl border shadow-md overflow-hidden"
+                        style={{ background: T.panel, borderColor: T.line }}
+                      >
+                        {sugerencias.map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => agregarChip(s)}
+                            className="w-full text-left px-3 py-2 text-sm"
+                            style={{ color: T.ink }}
+                          >
+                            {s.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <button
                     onClick={addTeam}
                     className="py-2 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
@@ -328,38 +445,77 @@ export default function AdminPage({ params }) {
         ) : (
           <>
             <div className="rounded-2xl p-4 mb-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
-              <h2 className="font-bold mb-2" style={{ color: T.gold }}>
-                Equipos y pagos
-              </h2>
-              <TeamList teams={teams} onTogglePaid={togglePaid} twoColumns />
+              <button
+                onClick={() => setMostrarEquipos((v) => !v)}
+                className="w-full flex items-center justify-between font-bold"
+                style={{ color: T.gold }}
+              >
+                <span>Equipos y pagos ({teams.length})</span>
+                <span className="text-xs" style={{ color: T.inkDim }}>
+                  {mostrarEquipos ? "ocultar ▲" : "mostrar ▼"}
+                </span>
+              </button>
+              {mostrarEquipos && (
+                <div className="mt-3">
+                  <TeamList teams={teams} onTogglePaid={togglePaid} twoColumns />
+                </div>
+              )}
             </div>
 
-            <h2 className="font-bold mb-3" style={{ color: T.gold }}>
-              Cuadro principal — tocá un equipo para forzar el resultado, o "abrir anotador" para el QR de esa mesa
-            </h2>
-            <div className="mb-2">
-              <BracketDisplayWithQr
-                matches={mainMatches}
+            <div className="flex rounded-2xl overflow-hidden border mb-4" style={{ borderColor: T.gold }}>
+              <button
+                onClick={() => setVista("mesas")}
+                className="flex-1 py-2.5 text-sm font-bold transition-colors duration-200"
+                style={{ background: vista === "mesas" ? T.gold : "transparent", color: vista === "mesas" ? T.ink : T.inkDim }}
+              >
+                🎲 Mesas
+              </button>
+              <button
+                onClick={() => setVista("cuadro")}
+                className="flex-1 py-2.5 text-sm font-bold transition-colors duration-200"
+                style={{ background: vista === "cuadro" ? T.gold : "transparent", color: vista === "cuadro" ? T.ink : T.inkDim }}
+              >
+                🏆 Cuadro completo
+              </button>
+            </div>
+
+            {vista === "mesas" ? (
+              <MesasPendientes
+                matches={[...mainMatches, ...repMatches]}
                 teamsById={teamsById}
-                origin={origin}
                 onOpenQr={openQr}
                 onDeclareWinner={forzarGanador}
               />
-            </div>
-
-            {tournament.repechaje && repMatches.length > 0 && (
-              <div className="mt-6">
+            ) : (
+              <>
                 <h2 className="font-bold mb-3" style={{ color: T.gold }}>
-                  Cuadro de repechaje
+                  Cuadro principal — tocá un equipo para forzar el resultado
                 </h2>
-                <BracketDisplayWithQr
-                  matches={repMatches}
-                  teamsById={teamsById}
-                  origin={origin}
-                  onOpenQr={openQr}
-                  onDeclareWinner={forzarGanador}
-                />
-              </div>
+                <div className="mb-2">
+                  <BracketDisplayWithQr
+                    matches={mainMatches}
+                    teamsById={teamsById}
+                    origin={origin}
+                    onOpenQr={openQr}
+                    onDeclareWinner={forzarGanador}
+                  />
+                </div>
+
+                {tournament.repechaje && repMatches.length > 0 && (
+                  <div className="mt-6">
+                    <h2 className="font-bold mb-3" style={{ color: T.gold }}>
+                      Cuadro de repechaje
+                    </h2>
+                    <BracketDisplayWithQr
+                      matches={repMatches}
+                      teamsById={teamsById}
+                      origin={origin}
+                      onOpenQr={openQr}
+                      onDeclareWinner={forzarGanador}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
@@ -390,6 +546,93 @@ export default function AdminPage({ params }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Vista rápida: una tarjeta por mesa pendiente, con acceso directo al QR,
+// sin tener que scrollear todo el cuadro para llegar hasta ahí.
+function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
+  const { T } = useTheme();
+  const pendientes = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && !m.winner_id && m.match_token);
+  const jugados = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && m.winner_id);
+
+  if (pendientes.length === 0 && jugados.length === 0) {
+    return (
+      <p className="text-sm text-center" style={{ color: T.inkDim }}>
+        Todavía no hay partidos con los dos equipos definidos.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      {pendientes.length > 0 && (
+        <>
+          <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
+            Por jugar ({pendientes.length})
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+            {pendientes.map((m) => (
+              <div
+                key={m.id}
+                className="rounded-2xl border p-3 shadow-sm flex flex-col gap-2"
+                style={{ background: T.panel, borderColor: T.line }}
+              >
+                <button
+                  onClick={() => onDeclareWinner(m, m.team1_id)}
+                  className="text-sm font-semibold text-left px-2 py-1.5 rounded-lg transition-colors duration-150"
+                  style={{ color: T.ink }}
+                >
+                  {teamsById[m.team1_id]?.name}
+                </button>
+                <div className="text-center text-xs" style={{ color: T.inkDim }}>
+                  vs
+                </div>
+                <button
+                  onClick={() => onDeclareWinner(m, m.team2_id)}
+                  className="text-sm font-semibold text-left px-2 py-1.5 rounded-lg transition-colors duration-150"
+                  style={{ color: T.ink }}
+                >
+                  {teamsById[m.team2_id]?.name}
+                </button>
+                <button
+                  onClick={() => onOpenQr(m.match_token)}
+                  className="mt-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+                  style={{ background: T.gold, color: T.ink }}
+                >
+                  📱 Ver QR
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {jugados.length > 0 && (
+        <>
+          <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
+            Ya jugados ({jugados.length})
+          </h2>
+          <div className="flex flex-col gap-1.5">
+            {jugados.map((m) => (
+              <div
+                key={m.id}
+                className="px-3 py-2 rounded-xl text-sm"
+                style={{ background: T.panelLight, color: T.inkDim }}
+              >
+                <span style={{ color: m.winner_id === m.team1_id ? T.goldBright : T.inkDim }}>
+                  {teamsById[m.team1_id]?.name}
+                </span>
+                {" vs "}
+                <span style={{ color: m.winner_id === m.team2_id ? T.goldBright : T.inkDim }}>
+                  {teamsById[m.team2_id]?.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

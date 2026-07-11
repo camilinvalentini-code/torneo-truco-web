@@ -85,6 +85,14 @@ export default function PanelAdmin() {
           Panel de administrador
         </h1>
 
+        <Link
+          href="/admin/jugadores"
+          className="block text-center py-2.5 rounded-2xl font-bold text-sm mb-6 transition-all duration-200 hover:scale-105 active:scale-95"
+          style={{ background: T.panel, color: T.ink, border: `1px solid ${T.line}` }}
+        >
+          🔀 Fusionar jugadores duplicados
+        </Link>
+
         {pendientes.length > 0 && (
           <div className="rounded-2xl p-4 mb-6 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
             <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
