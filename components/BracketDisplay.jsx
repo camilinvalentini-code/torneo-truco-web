@@ -1,17 +1,43 @@
 "use client";
-import React from "react";
+import React, { useRef } from "react";
 import { useTheme } from "../lib/theme";
 import SuitIcon, { SUITS } from "./SuitIcon";
 import { groupByRound, roundLabel } from "../lib/bracket";
 
 export default function BracketDisplay({ matches, teamsById, adminMode, tournamentUrl, onDeclareWinner }) {
   const { T } = useTheme();
+  const scrollRef = useRef(null);
   if (!matches || matches.length === 0) return null;
   const rounds = groupByRound(matches);
   const nameOf = (id) => (id ? teamsById[id]?.name || "???" : null);
 
+  function jump(dir) {
+    if (scrollRef.current) scrollRef.current.scrollBy({ left: dir * 260, behavior: "smooth" });
+  }
+
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
+    <div className="relative">
+      {rounds.length > 1 && (
+        <>
+          <button
+            onClick={() => jump(-1)}
+            className="hidden sm:flex absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full items-center justify-center shadow-md"
+            style={{ background: T.gold, color: T.ink }}
+            aria-label="Ronda anterior"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => jump(1)}
+            className="hidden sm:flex absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full items-center justify-center shadow-md"
+            style={{ background: T.gold, color: T.ink }}
+            aria-label="Ronda siguiente"
+          >
+            ›
+          </button>
+        </>
+      )}
+      <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-2 scroll-smooth">
       {rounds.map((round, rIdx) => (
         <div key={rIdx} className="flex-shrink-0 w-56">
           <div className="flex items-center gap-2 mb-3 justify-center">
@@ -90,6 +116,7 @@ export default function BracketDisplay({ matches, teamsById, adminMode, tourname
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

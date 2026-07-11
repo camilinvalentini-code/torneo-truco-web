@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTheme } from "../../../lib/theme";
 import { useSkin } from "../../../lib/scoreboardSkin";
 import { supabase } from "../../../lib/supabaseClient";
+import { fraseCampeonAlAzar } from "../../../lib/champFrases";
 import Scoreboard from "../../../components/Scoreboard";
 import ThemeToggleButton from "../../../components/ThemeToggleButton";
 import SuitIcon from "../../../components/SuitIcon";
@@ -115,6 +116,9 @@ export default function PartidoPage({ params }) {
             </div>
             <div className="text-xl font-black mt-1" style={{ color: "#33453E" }}>
               {winnerName}
+            </div>
+            <div className="text-xs mt-1 italic" style={{ color: "#B85C55" }}>
+              {fraseCampeonAlAzar()}
             </div>
           </div>
         )}

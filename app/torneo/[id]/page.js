@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useTheme } from "../../../lib/theme";
 import { supabase } from "../../../lib/supabaseClient";
+import { fraseCampeonAlAzar } from "../../../lib/champFrases";
 import BracketDisplay from "../../../components/BracketDisplay";
 import ThemeToggleButton from "../../../components/ThemeToggleButton";
 import SuitIcon from "../../../components/SuitIcon";
@@ -92,6 +93,9 @@ export default function TorneoPublico({ params, searchParams }) {
             <div className="text-2xl font-black mt-1" style={{ color: "#33453E" }}>
               {teamsById[tournament.champion_id]?.name}
             </div>
+            <div className="text-xs mt-1 italic" style={{ color: "#B85C55" }}>
+              {fraseCampeonAlAzar()}
+            </div>
           </div>
         )}
 
@@ -114,6 +118,9 @@ export default function TorneoPublico({ params, searchParams }) {
                     </div>
                     <div className="text-2xl font-black mt-1" style={{ color: "#33453E" }}>
                       {teamsById[tournament.repechaje_champion_id]?.name}
+                    </div>
+                    <div className="text-xs mt-1 italic" style={{ color: "#B85C55" }}>
+                      {fraseCampeonAlAzar()}
                     </div>
                   </div>
                 )}

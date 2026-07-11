@@ -35,6 +35,7 @@ export default function AdminPage({ params }) {
   const [infoUbicacion, setInfoUbicacion] = useState("");
   const [infoFecha, setInfoFecha] = useState("");
   const [vista, setVista] = useState("mesas"); // "mesas" | "cuadro"
+  const [simulando, setSimulando] = useState(false);
   const [mostrarEquipos, setMostrarEquipos] = useState(false);
 
   useEffect(() => {
@@ -226,6 +227,26 @@ export default function AdminPage({ params }) {
     const nombreEquipo = teamsById[winnerId]?.name || "este equipo";
     if (!window.confirm(`¿Marcar a "${nombreEquipo}" como ganador de este partido?`)) return;
     await supabase.rpc("declarar_ganador", { p_match_id: match.id, p_winner_id: winnerId });
+    load();
+  }
+
+  async function simularTorneoCompleto() {
+    if (!window.confirm("Esto va a completar TODO el torneo con resultados al azar (para testear). ¿Seguro?")) return;
+    setSimulando(true);
+    for (let i = 0; i < 200; i++) {
+      const { data: pend } = await supabase
+        .from("matches")
+        .select("*")
+        .eq("tournament_id", id)
+        .is("winner_id", null)
+        .not("team1_id", "is", null)
+        .not("team2_id", "is", null);
+      if (!pend || pend.length === 0) break;
+      const m = pend[0];
+      const winnerId = Math.random() < 0.5 ? m.team1_id : m.team2_id;
+      await supabase.rpc("declarar_ganador", { p_match_id: m.id, p_winner_id: winnerId });
+    }
+    setSimulando(false);
     load();
   }
 
@@ -461,6 +482,17 @@ export default function AdminPage({ params }) {
                 </div>
               )}
             </div>
+
+            {!tournament.champion_id && (
+              <button
+                onClick={simularTorneoCompleto}
+                disabled={simulando}
+                className="w-full py-2 rounded-2xl font-bold text-xs mb-3 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-60"
+                style={{ background: T.panelLight, color: T.redDim, border: `1px solid ${T.line}` }}
+              >
+                {simulando ? "Simulando…" : "🎲 Simular resultados al azar (solo para test)"}
+              </button>
+            )}
 
             <div className="flex rounded-2xl overflow-hidden border mb-4" style={{ borderColor: T.gold }}>
               <button

@@ -17,6 +17,7 @@ export default function PanelAdmin() {
   const [torneos, setTorneos] = useState([]);
   const [perfilesPorId, setPerfilesPorId] = useState({});
   const [loading, setLoading] = useState(true);
+  const [confirmarBorrar, setConfirmarBorrar] = useState(null);
 
   const load = useCallback(async () => {
     const { data: pend } = await supabase.from("profiles").select("*").eq("status", "pendiente").order("created_at");
@@ -54,6 +55,11 @@ export default function PanelAdmin() {
   }
   async function rechazar(id) {
     await supabase.from("profiles").update({ status: "rechazado" }).eq("id", id);
+    load();
+  }
+  async function borrarTorneo(idTorneo) {
+    await supabase.from("tournaments").delete().eq("id", idTorneo);
+    setConfirmarBorrar(null);
     load();
   }
 
@@ -161,20 +167,48 @@ export default function PanelAdmin() {
           {torneos.map((t) => {
             const org = perfilesPorId[t.organizador_id];
             return (
-              <Link
+              <div
                 key={t.id}
-                href={`/torneo/${t.id}/admin`}
-                className="px-4 py-3 rounded-xl text-sm transition-colors duration-200"
-                style={{ background: T.panel, color: T.ink, border: `1px solid ${T.line}` }}
+                className="px-4 py-3 rounded-xl text-sm transition-colors duration-200 flex items-center gap-2"
+                style={{ background: T.panel, border: `1px solid ${T.line}` }}
               >
-                <div>
-                  🎴 {t.nombre} <span style={{ color: T.inkDim }}>({t.categoria} · {t.ubicacion})</span>
-                  {t.champion_id && <span className="ml-2">🏆</span>}
-                </div>
-                <div className="text-xs mt-0.5" style={{ color: T.inkDim }}>
-                  organizador: {org ? org.nombre || org.email : "sin asignar"}
-                </div>
-              </Link>
+                <Link href={`/torneo/${t.id}/admin`} className="flex-1 min-w-0" style={{ color: T.ink }}>
+                  <div className="truncate">
+                    🎴 {t.nombre} <span style={{ color: T.inkDim }}>({t.categoria} · {t.ubicacion})</span>
+                    {t.champion_id && <span className="ml-2">🏆</span>}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: T.inkDim }}>
+                    organizador: {org ? org.nombre || org.email : "sin asignar"}
+                  </div>
+                </Link>
+                {confirmarBorrar === t.id ? (
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => borrarTorneo(t.id)}
+                      className="text-xs font-bold px-2.5 py-1.5 rounded-full"
+                      style={{ background: T.redDim, color: "#FFFFFF" }}
+                    >
+                      confirmar
+                    </button>
+                    <button
+                      onClick={() => setConfirmarBorrar(null)}
+                      className="text-xs px-2"
+                      style={{ color: T.inkDim }}
+                    >
+                      no
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmarBorrar(t.id)}
+                    className="text-xs px-2 flex-shrink-0"
+                    style={{ color: T.redDim }}
+                    title="Borrar este torneo"
+                  >
+                    🗑
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
