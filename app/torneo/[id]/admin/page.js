@@ -203,6 +203,31 @@ export default function AdminPage({ params }) {
     load();
   }
 
+  function sorteoSinJugar() {
+    if (!tournament?.started) return false;
+    const ronda0 = matches.filter((m) => m.bracket === "main" && m.round_index === 0);
+    return ronda0.every((m) => !m.winner_id || m.bye);
+  }
+
+  async function resortear() {
+    if (!window.confirm("¿Volver a sortear? Se descarta el cuadro actual y se arma uno nuevo desde cero.")) return;
+    setError("");
+    await supabase.from("matches").delete().eq("tournament_id", id).eq("bracket", "main");
+    await supabase.from("matches").delete().eq("tournament_id", id).eq("bracket", "repechaje");
+    await supabase.from("tournaments").update({ champion_id: null, repechaje_champion_id: null }).eq("id", id);
+    const { error: err } = await supabase.rpc("generar_bracket", {
+      p_tournament_id: id,
+      p_bracket: "main",
+      p_team_ids: teams.map((t) => t.id),
+    });
+    if (err) {
+      setError("No se pudo resortear. Probá de nuevo.");
+      console.error(err);
+      return;
+    }
+    load();
+  }
+
   async function openQr(token) {
     const url = `${origin}/partido/${token}`;
     const dataUrl = await QRCode.toDataURL(url, { margin: 1, width: 260, color: { dark: "#33453E", light: "#FBF3E3" } });
@@ -567,6 +592,16 @@ export default function AdminPage({ params }) {
                 </div>
               )}
             </div>
+
+            {sorteoSinJugar() && (
+              <button
+                onClick={resortear}
+                className="w-full py-2 rounded-2xl font-bold text-xs mb-3 transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{ background: T.panelLight, color: T.ink, border: `1px solid ${T.gold}` }}
+              >
+                🔄 Resortear (todavía no se jugó nada)
+              </button>
+            )}
 
             {!tournament.champion_id && (
               <button
