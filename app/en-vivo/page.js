@@ -28,7 +28,7 @@ export default function EnVivo() {
       <div className="max-w-md mx-auto px-4 py-8">
         <div className="flex justify-between mb-4">
           <Link href="/" className="text-xs underline" style={{ color: T.inkDim }}>
-            ← inicio
+            ← Inicio
           </Link>
           <ThemeToggleButton />
         </div>

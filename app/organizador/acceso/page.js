@@ -39,7 +39,7 @@ export default function AccesoOrganizador() {
       <div className="max-w-md mx-auto px-4 py-8">
         <div className="flex justify-between mb-4">
           <Link href="/" className="text-xs underline" style={{ color: T.inkDim }}>
-            ← inicio
+            ← Inicio
           </Link>
           <ThemeToggleButton />
         </div>
@@ -61,7 +61,7 @@ export default function AccesoOrganizador() {
               <input
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                placeholder="Nombre del bar y organizador"
+                placeholder="Nombre del bar / organizador"
                 className="px-3 py-2 rounded-xl text-sm"
                 style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
               />

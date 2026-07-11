@@ -69,7 +69,7 @@ export default function HistorialPage() {
           className="block text-center text-xs underline mt-6"
           style={{ color: T.inkDim }}
         >
-          ← volver al inicio
+          ← Volver al inicio
         </Link>
       </div>
     </div>

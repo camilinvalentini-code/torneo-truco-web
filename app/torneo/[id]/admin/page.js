@@ -377,6 +377,12 @@ export default function AdminPage({ params }) {
                   <input
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addTeam();
+                      }
+                    }}
                     placeholder="Nombre del equipo"
                     className="px-3 py-2 rounded-xl text-sm"
                     style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}

@@ -65,7 +65,7 @@ export default function FusionarJugadores() {
       <div className="max-w-md mx-auto px-4 py-8">
         <div className="flex justify-between mb-4">
           <Link href="/admin/panel" className="text-xs underline" style={{ color: T.inkDim }}>
-            ← panel admin
+            ← Panel admin
           </Link>
           <ThemeToggleButton />
         </div>

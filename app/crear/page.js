@@ -28,6 +28,18 @@ export default function CrearTorneo() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [testCantidad, setTestCantidad] = useState(8);
+  const [testCategoria, setTestCategoria] = useState("2v2");
+  const [testRepechaje, setTestRepechaje] = useState(true);
+  const [testLoading, setTestLoading] = useState(false);
+
+  const NOMBRES_PRUEBA = [
+    "Los Ases", "Ancho Falso", "Truco y Retruco", "Sol de Mayo", "Río Platenses",
+    "Cuatro Vientos", "Malas y Buenas", "Envido Va", "Los Tantos", "Flor de Mesa",
+    "Che Pintó", "Los Mentirosos", "Vale Cuatro", "Siete de Oro", "Los Cantores",
+    "Tres Solo", "Falta Envido", "Los Aguante", "Con Flor y Todo", "Doble Falta",
+  ];
+
   useEffect(() => {
     async function cargarCiudades() {
       if (!provincia) {
@@ -89,6 +101,44 @@ export default function CrearTorneo() {
     router.push(`/torneo/${data.id}/admin`);
   }
 
+  async function generarTorneoPrueba() {
+    setError("");
+    setTestLoading(true);
+    const n = Math.max(3, Math.min(64, Number(testCantidad) || 8));
+    const nombreTest = `TEST ${n} equipos · ${new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`;
+    const { data: torneo, error: err } = await supabase
+      .from("tournaments")
+      .insert({
+        nombre: nombreTest,
+        pais: "AR",
+        provincia: "Córdoba",
+        ciudad: "Córdoba",
+        lugar: "Prueba",
+        ubicacion: "Prueba, Córdoba",
+        fecha: hoy(),
+        categoria: testCategoria,
+        repechaje: testRepechaje,
+        organizador_id: session.user.id,
+      })
+      .select()
+      .single();
+    if (err) {
+      setError("No se pudo generar el torneo de prueba.");
+      console.error(err);
+      setTestLoading(false);
+      return;
+    }
+    const equipos = Array.from({ length: n }, (_, i) => ({
+      tournament_id: torneo.id,
+      name: NOMBRES_PRUEBA[i % NOMBRES_PRUEBA.length] + (i >= NOMBRES_PRUEBA.length ? ` ${Math.floor(i / NOMBRES_PRUEBA.length) + 1}` : ""),
+      players: "",
+      paid: Math.random() < 0.6,
+    }));
+    await supabase.from("teams").insert(equipos);
+    setTestLoading(false);
+    router.push(`/torneo/${torneo.id}/admin`);
+  }
+
   if (authLoading || !session || (profile && profile.status !== "aprobado")) return null;
 
   return (
@@ -96,7 +146,7 @@ export default function CrearTorneo() {
       <div className="max-w-md mx-auto px-4 py-8">
         <div className="flex justify-between mb-4">
           <Link href="/organizador/panel" className="text-xs underline" style={{ color: T.inkDim }}>
-            ← mi panel
+            ← Mi panel
           </Link>
           <ThemeToggleButton />
         </div>
@@ -211,6 +261,58 @@ export default function CrearTorneo() {
         >
           {loading ? "Creando…" : "Crear y anotar equipos →"}
         </button>
+
+        <div
+          className="rounded-2xl p-4 border-2 border-dashed mt-8"
+          style={{ background: T.panel, borderColor: T.redDim }}
+        >
+          <h2 className="font-bold mb-1 text-sm" style={{ color: T.redDim }}>
+            🧪 Generar torneo de prueba
+          </h2>
+          <p className="text-xs mb-3" style={{ color: T.inkDim }}>
+            Crea un torneo con equipos falsos ya cargados, para testear rápido. No sirve para un torneo real.
+          </p>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs flex-shrink-0" style={{ color: T.inkDim }}>
+                Cantidad de equipos
+              </span>
+              <input
+                type="number"
+                min={3}
+                max={64}
+                value={testCantidad}
+                onChange={(e) => setTestCantidad(e.target.value)}
+                className="px-3 py-2 rounded-xl text-sm flex-1"
+                style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+              />
+            </div>
+            <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: T.redDim }}>
+              {["2v2", "3v3"].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setTestCategoria(c)}
+                  className="flex-1 py-2 text-sm font-bold uppercase"
+                  style={{ background: testCategoria === c ? T.redDim : "transparent", color: testCategoria === c ? "#FFFFFF" : T.inkDim }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-2 text-sm" style={{ color: T.ink }}>
+              <input type="checkbox" checked={testRepechaje} onChange={(e) => setTestRepechaje(e.target.checked)} />
+              Con repechaje
+            </label>
+            <button
+              onClick={generarTorneoPrueba}
+              disabled={testLoading}
+              className="py-2.5 rounded-xl font-bold text-sm mt-1 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-60"
+              style={{ background: T.redDim, color: "#FFFFFF" }}
+            >
+              {testLoading ? "Generando…" : "🎲 Generar y anotar equipos ya"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

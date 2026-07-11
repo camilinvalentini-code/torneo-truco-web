@@ -77,7 +77,7 @@ export default function PanelAdmin() {
       <div className="max-w-3xl mx-auto px-4 py-6">
         <div className="flex justify-between mb-2">
           <Link href="/" className="text-xs underline" style={{ color: T.inkDim }}>
-            ← inicio
+            ← Inicio
           </Link>
           <div className="flex gap-3 items-center">
             <button onClick={salir} className="text-xs underline" style={{ color: T.inkDim }}>
