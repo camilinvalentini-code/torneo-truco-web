@@ -61,7 +61,7 @@ export default function AccesoOrganizador() {
               <input
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                placeholder="Nombre del bar / organizador"
+                placeholder="Nombre del bar y organizador"
                 className="px-3 py-2 rounded-xl text-sm"
                 style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
               />
