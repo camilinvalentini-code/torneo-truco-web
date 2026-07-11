@@ -65,7 +65,7 @@ export default function TorneoPublico({ params, searchParams }) {
       <div className="max-w-3xl lg:max-w-6xl mx-auto px-4 py-6">
         <div className="flex justify-between mb-2">
           <Link href="/" className="text-xs underline" style={{ color: T.inkDim }}>
-            ← inicio
+            ← Inicio
           </Link>
           <ThemeToggleButton />
         </div>
