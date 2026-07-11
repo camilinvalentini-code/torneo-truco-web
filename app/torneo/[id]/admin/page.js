@@ -291,7 +291,7 @@ export default function AdminPage({ params }) {
       <div className="max-w-3xl lg:max-w-6xl mx-auto px-4 py-6">
         <div className="flex justify-between mb-2">
           <Link href="/organizador/panel" className="text-xs underline" style={{ color: T.inkDim }}>
-            ← mi panel
+            ← Mi panel
           </Link>
           <ThemeToggleButton />
         </div>
@@ -308,7 +308,7 @@ export default function AdminPage({ params }) {
           {[tournament.ubicacion, tournament.fecha, tournament.categoria].filter(Boolean).join(" · ")}
           {" · "}
           <button onClick={() => setEditandoInfo((v) => !v)} className="underline" style={{ color: T.inkDim }}>
-            ✏️ editar datos
+            ✏️ Editar datos
           </button>
         </p>
 
@@ -459,7 +459,7 @@ export default function AdminPage({ params }) {
                 className="w-full py-3 rounded-2xl font-black text-lg transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50"
                 style={{ background: T.gold, color: T.ink }}
               >
-                🎴 Hacer el sorteo
+                ⚔️ Hacer los cruces
               </button>
             </div>
           </>
