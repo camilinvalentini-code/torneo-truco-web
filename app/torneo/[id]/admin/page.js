@@ -10,6 +10,7 @@ import TeamList from "../../../../components/TeamList";
 import BracketDisplay from "../../../../components/BracketDisplay";
 import ThemeToggleButton from "../../../../components/ThemeToggleButton";
 import SuitIcon from "../../../../components/SuitIcon";
+import { fraseCampeonAlAzar } from "../../../../lib/champFrases";
 
 export default function AdminPage({ params }) {
   const { id } = params;
@@ -427,6 +428,23 @@ export default function AdminPage({ params }) {
           </p>
         )}
 
+        {tournament.champion_id && (
+          <div
+            className="rounded-3xl p-5 mb-5 text-center border-2 shadow-md"
+            style={{ background: "#FBF3E3", borderColor: "#EAC27A" }}
+          >
+            <div className="text-xs font-bold uppercase tracking-widest" style={{ color: "#B85C55" }}>
+              🏆 Campeón
+            </div>
+            <div className="text-2xl font-black mt-1" style={{ color: "#33453E" }}>
+              {teamsById[tournament.champion_id]?.name}
+            </div>
+            <div className="text-xs mt-1 italic" style={{ color: "#B85C55" }}>
+              {fraseCampeonAlAzar()}
+            </div>
+          </div>
+        )}
+
         {!tournament.started ? (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 lg:items-start gap-4 mb-4 lg:max-w-4xl lg:mx-auto">
@@ -775,6 +793,8 @@ function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
 // para que el organizador lo pueda mostrar en pantalla o imprimir.
 function BracketDisplayWithQr({ matches, teamsById, onOpenQr, onDeclareWinner, onReabrir }) {
   const { T } = useTheme();
+  const [abiertoPendientes, setAbiertoPendientes] = useState(true);
+  const [abiertoFinalizados, setAbiertoFinalizados] = useState(true);
   const conQr = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && m.match_token);
   const pendientes = conQr.filter((m) => !m.winner_id);
   const finalizados = conQr.filter((m) => m.winner_id);
@@ -826,27 +846,47 @@ function BracketDisplayWithQr({ matches, teamsById, onOpenQr, onDeclareWinner, o
 
       {pendientes.length > 0 && (
         <div className="mt-4">
-          <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: T.gold }}>
-            Por jugar ({pendientes.length})
-          </h3>
-          <div className="flex flex-col gap-2">
-            {pendientes.map((m) => (
-              <Fila key={m.id} m={m} clickable />
-            ))}
-          </div>
+          <button
+            onClick={() => setAbiertoPendientes((v) => !v)}
+            className="w-full flex items-center justify-between mb-2"
+          >
+            <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: T.gold }}>
+              Por jugar ({pendientes.length})
+            </h3>
+            <span className="text-xs" style={{ color: T.gold }}>
+              {abiertoPendientes ? "▲" : "▼"}
+            </span>
+          </button>
+          {abiertoPendientes && (
+            <div className="flex flex-col gap-2">
+              {pendientes.map((m) => (
+                <Fila key={m.id} m={m} clickable />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {finalizados.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: T.inkDim }}>
-            Tanteadores partidos finalizados ({finalizados.length})
-          </h3>
-          <div className="flex flex-col gap-2">
-            {finalizados.map((m) => (
-              <Fila key={m.id} m={m} clickable={false} />
-            ))}
-          </div>
+          <button
+            onClick={() => setAbiertoFinalizados((v) => !v)}
+            className="w-full flex items-center justify-between mb-2"
+          >
+            <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: T.inkDim }}>
+              Tanteadores partidos finalizados ({finalizados.length})
+            </h3>
+            <span className="text-xs" style={{ color: T.inkDim }}>
+              {abiertoFinalizados ? "▲" : "▼"}
+            </span>
+          </button>
+          {abiertoFinalizados && (
+            <div className="flex flex-col gap-2">
+              {finalizados.map((m) => (
+                <Fila key={m.id} m={m} clickable={false} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

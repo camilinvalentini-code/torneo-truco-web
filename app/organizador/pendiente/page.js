@@ -54,7 +54,7 @@ export default function Pendiente() {
           Ya me aprobaron, revisar de nuevo
         </button>
         <button onClick={salir} className="w-full text-center text-xs underline" style={{ color: T.inkDim }}>
-          cerrar sesión
+          Cerrar sesión
         </button>
       </div>
     </div>
