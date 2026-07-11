@@ -223,6 +223,37 @@ export default function AdminPage({ params }) {
     load();
   }
 
+  async function reabrirPartido(match) {
+    const hermanos = matches.filter((m) => m.bracket === match.bracket);
+    const maxRound = Math.max(...hermanos.map((m) => m.round_index));
+    if (match.round_index < maxRound) {
+      const siguienteIdx = Math.floor(match.match_index / 2);
+      const siguiente = hermanos.find((m) => m.round_index === match.round_index + 1 && m.match_index === siguienteIdx);
+      if (siguiente?.winner_id) {
+        window.alert(
+          "No se puede reabrir: el ganador de este partido ya jugó (y quizás ganó) el siguiente. Reabrí primero ese otro partido."
+        );
+        return;
+      }
+    }
+    if (!window.confirm("¿Reabrir este partido? El resultado actual se borra y vuelve a estar 'por jugar'.")) return;
+
+    if (match.round_index < maxRound) {
+      const siguienteIdx = Math.floor(match.match_index / 2);
+      const slot = match.match_index % 2 === 0 ? "team1_id" : "team2_id";
+      const siguiente = hermanos.find((m) => m.round_index === match.round_index + 1 && m.match_index === siguienteIdx);
+      if (siguiente) {
+        await supabase.from("matches").update({ [slot]: null }).eq("id", siguiente.id);
+      }
+    } else if (match.bracket === "main") {
+      await supabase.from("tournaments").update({ champion_id: null }).eq("id", id);
+    } else {
+      await supabase.from("tournaments").update({ repechaje_champion_id: null }).eq("id", id);
+    }
+    await supabase.from("matches").update({ winner_id: null }).eq("id", match.id);
+    load();
+  }
+
   async function forzarGanador(match, winnerId) {
     const nombreEquipo = teamsById[winnerId]?.name || "este equipo";
     if (!window.confirm(`¿Marcar a "${nombreEquipo}" como ganador de este partido?`)) return;
@@ -566,6 +597,7 @@ export default function AdminPage({ params }) {
                     origin={origin}
                     onOpenQr={openQr}
                     onDeclareWinner={forzarGanador}
+                    onReabrir={reabrirPartido}
                   />
                 </div>
 
@@ -611,6 +643,7 @@ export default function AdminPage({ params }) {
                       origin={origin}
                       onOpenQr={openQr}
                       onDeclareWinner={forzarGanador}
+                      onReabrir={reabrirPartido}
                     />
                   </div>
                 )}
@@ -740,38 +773,51 @@ function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
 
 // Igual que BracketDisplay pero agrega un botón "ver QR" en vez del link directo,
 // para que el organizador lo pueda mostrar en pantalla o imprimir.
-function BracketDisplayWithQr({ matches, teamsById, onOpenQr, onDeclareWinner }) {
+function BracketDisplayWithQr({ matches, teamsById, onOpenQr, onDeclareWinner, onReabrir }) {
   const { T } = useTheme();
   const conQr = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && m.match_token);
   const pendientes = conQr.filter((m) => !m.winner_id);
   const finalizados = conQr.filter((m) => m.winner_id);
 
   const Fila = ({ m, clickable }) => (
-    <button
-      onClick={clickable ? () => onOpenQr(m.match_token) : undefined}
+    <div
       className="w-full text-left px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3 transition-colors duration-150"
       style={{
         background: clickable ? T.panel : T.panelLight,
         border: `1px solid ${T.line}`,
-        cursor: clickable ? "pointer" : "default",
-        opacity: clickable ? 1 : 0.75,
+        opacity: clickable ? 1 : 0.85,
       }}
     >
-      <span className="truncate" style={{ color: T.ink }}>
+      <button
+        onClick={clickable ? () => onOpenQr(m.match_token) : undefined}
+        className="flex-1 text-left truncate"
+        style={{ cursor: clickable ? "pointer" : "default" }}
+      >
         <span style={{ color: m.winner_id === m.team1_id ? T.goldBright : T.inkDim }}>
           {teamsById[m.team1_id]?.name}
+          {!clickable && ` (${m.score_a ?? 0})`}
         </span>
         <span style={{ color: T.inkDim }}> vs </span>
         <span style={{ color: m.winner_id === m.team2_id ? T.goldBright : T.inkDim }}>
           {teamsById[m.team2_id]?.name}
+          {!clickable && ` (${m.score_b ?? 0})`}
         </span>
-      </span>
-      {clickable && (
-        <span className="text-xs font-bold flex-shrink-0" style={{ color: T.goldBright }}>
+      </button>
+      {clickable ? (
+        <button onClick={() => onOpenQr(m.match_token)} className="text-xs font-bold flex-shrink-0" style={{ color: T.goldBright }}>
           📱 ver QR
-        </span>
+        </button>
+      ) : (
+        <button
+          onClick={() => onReabrir(m)}
+          className="text-xs font-bold flex-shrink-0 px-2 py-1 rounded-full"
+          style={{ color: T.redDim, border: `1px solid ${T.redDim}` }}
+          title="Reabrir este partido"
+        >
+          ↺ reabrir
+        </button>
       )}
-    </button>
+    </div>
   );
 
   return (

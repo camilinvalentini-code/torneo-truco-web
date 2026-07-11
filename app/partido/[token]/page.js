@@ -56,9 +56,15 @@ export default function PartidoPage({ params }) {
 
   async function onChange(side, delta) {
     if (!match || busy || match.winner_id) return;
-    setBusy(true);
     const field = side === "A" ? "score_a" : "score_b";
-    setMatch((m) => ({ ...m, [field]: Math.max(0, Math.min(30, m[field] + delta)) })); // respuesta inmediata en pantalla
+    const proyectado = Math.max(0, Math.min(30, match[field] + delta));
+    if (delta > 0 && proyectado >= 30) {
+      const nombreGanador = side === "A" ? nameA : nameB;
+      const ok = window.confirm(`¿Confirmás que "${nombreGanador}" ganó 30 puntos? Esto cierra el partido y avanza de fase.`);
+      if (!ok) return;
+    }
+    setBusy(true);
+    setMatch((m) => ({ ...m, [field]: proyectado })); // respuesta inmediata en pantalla
     const { data, error } = await supabase.rpc("anotar_punto", {
       p_match_token: token,
       p_lado: side,
