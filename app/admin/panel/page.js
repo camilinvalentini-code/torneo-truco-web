@@ -133,10 +133,10 @@ export default function PanelAdmin() {
                       className="text-xs font-bold px-3 py-1.5 rounded-full"
                       style={{ background: T.gold, color: T.ink }}
                     >
-                      aprobar
+                      Aprobar
                     </button>
                     <button onClick={() => rechazar(p.id)} className="text-xs px-2" style={{ color: T.redDim }}>
-                      rechazar
+                      Rechazar
                     </button>
                   </div>
                 </div>
