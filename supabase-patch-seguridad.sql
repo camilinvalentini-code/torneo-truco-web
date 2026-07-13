@@ -1,8 +1,91 @@
--- PARCHE FINAL — corre esto último, y no vuelvas a correr la query vieja
--- que dice "MIGRACIÓN v2" de nuevo (esa es la que está devolviendo el
--- permiso a "anon" cada vez que se re-ejecuta). Este parche deja todo
--- bien sin importar qué se haya corrido antes.
+-- PARCHE DE SEGURIDAD — revisión completa.
+-- Ejecutar una sola vez en el SQL Editor de Supabase. No borra ni cambia
+-- ningún dato existente, solo ajusta permisos y agrega controles.
 
+-- 1) "declarar_ganador" ya no se puede llamar directo sin pasar por el
+--    token del partido. El competidor sin cuenta sigue funcionando igual
+--    (llega a esta función por dentro, desde "anotar_punto"), pero ya
+--    nadie puede invocarla directo desde afuera con solo el id del partido.
+revoke execute on function public.declarar_ganador(uuid, uuid) from anon;
+
+create or replace function public.declarar_ganador(p_match_id uuid, p_winner_id uuid)
+returns void language plpgsql security definer
+set search_path = public, pg_temp as $$
+declare
+  m matches%rowtype;
+  max_round int;
+  next_idx int;
+  round0_done boolean;
+  t_repechaje boolean;
+  existing_rep int;
+  losers uuid[];
+begin
+  select * into m from matches where id = p_match_id;
+  if not found or m.winner_id is not null then return; end if;
+  if p_winner_id is distinct from m.team1_id and p_winner_id is distinct from m.team2_id then
+    raise exception 'ese equipo no juega este partido';
+  end if;
+
+  -- Si quien llama está logueado (organizador/admin forzando un resultado
+  -- a mano), tiene que ser el dueño de ese torneo o admin. Si NO está
+  -- logueado (auth.uid() es null), es el camino normal del anotador sin
+  -- cuenta, que ya validó el token antes de llegar hasta aquí.
+  if auth.uid() is not null and not (
+    public.is_admin() or exists (
+      select 1 from tournaments t where t.id = m.tournament_id and t.organizador_id = auth.uid()
+    )
+  ) then
+    raise exception 'no autorizado';
+  end if;
+
+  update matches set winner_id = p_winner_id where id = p_match_id;
+
+  select max(round_index) into max_round from matches where tournament_id = m.tournament_id and bracket = m.bracket;
+
+  if m.round_index = max_round then
+    if m.bracket = 'main' then
+      update tournaments set champion_id = p_winner_id where id = m.tournament_id;
+    else
+      update tournaments set repechaje_champion_id = p_winner_id where id = m.tournament_id;
+    end if;
+  else
+    next_idx := m.match_index / 2;
+    if m.match_index % 2 = 0 then
+      update matches set team1_id = p_winner_id
+        where tournament_id = m.tournament_id and bracket = m.bracket and round_index = m.round_index + 1 and match_index = next_idx;
+    else
+      update matches set team2_id = p_winner_id
+        where tournament_id = m.tournament_id and bracket = m.bracket and round_index = m.round_index + 1 and match_index = next_idx;
+    end if;
+  end if;
+
+  if m.bracket = 'main' and m.round_index = 0 then
+    select bool_and(winner_id is not null) into round0_done
+      from matches where tournament_id = m.tournament_id and bracket = 'main' and round_index = 0;
+    if round0_done then
+      select repechaje into t_repechaje from tournaments where id = m.tournament_id;
+      if t_repechaje then
+        select count(*) into existing_rep from matches where tournament_id = m.tournament_id and bracket = 'repechaje';
+        if existing_rep = 0 then
+          select array_agg(case when team1_id = winner_id then team2_id else team1_id end)
+            into losers
+            from matches where tournament_id = m.tournament_id and bracket = 'main' and round_index = 0 and bye = false;
+          if array_length(losers, 1) >= 2 then
+            perform public.generar_bracket(m.tournament_id, 'repechaje', losers);
+          elsif array_length(losers, 1) = 1 then
+            update tournaments set repechaje_champion_id = losers[1] where id = m.tournament_id;
+          end if;
+        end if;
+      end if;
+    end if;
+  end if;
+end;
+$$;
+grant execute on function public.declarar_ganador(uuid, uuid) to authenticated;
+-- (el camino sin login sigue andando: "anotar_punto" llama a esta función
+-- por dentro, y eso no depende del permiso de "anon" sobre esta función)
+
+-- 2) "generar_bracket" ahora exige ser el dueño del torneo (o admin).
 create or replace function public.generar_bracket(
   p_tournament_id uuid, p_bracket text, p_team_ids uuid[]
 ) returns void language plpgsql security definer
@@ -75,80 +158,9 @@ begin
   end loop;
 end;
 $$;
-
-create or replace function public.declarar_ganador(p_match_id uuid, p_winner_id uuid)
-returns void language plpgsql security definer
-set search_path = public, pg_temp as $$
-declare
-  m matches%rowtype;
-  max_round int;
-  next_idx int;
-  round0_done boolean;
-  t_repechaje boolean;
-  existing_rep int;
-  losers uuid[];
-begin
-  select * into m from matches where id = p_match_id;
-  if not found or m.winner_id is not null then return; end if;
-  if p_winner_id is distinct from m.team1_id and p_winner_id is distinct from m.team2_id then
-    raise exception 'ese equipo no juega este partido';
-  end if;
-
-  if auth.uid() is not null and not (
-    public.is_admin() or exists (
-      select 1 from tournaments t where t.id = m.tournament_id and t.organizador_id = auth.uid()
-    )
-  ) then
-    raise exception 'no autorizado';
-  end if;
-
-  update matches set winner_id = p_winner_id where id = p_match_id;
-
-  select max(round_index) into max_round from matches where tournament_id = m.tournament_id and bracket = m.bracket;
-
-  if m.round_index = max_round then
-    if m.bracket = 'main' then
-      update tournaments set champion_id = p_winner_id where id = m.tournament_id;
-    else
-      update tournaments set repechaje_champion_id = p_winner_id where id = m.tournament_id;
-    end if;
-  else
-    next_idx := m.match_index / 2;
-    if m.match_index % 2 = 0 then
-      update matches set team1_id = p_winner_id
-        where tournament_id = m.tournament_id and bracket = m.bracket and round_index = m.round_index + 1 and match_index = next_idx;
-    else
-      update matches set team2_id = p_winner_id
-        where tournament_id = m.tournament_id and bracket = m.bracket and round_index = m.round_index + 1 and match_index = next_idx;
-    end if;
-  end if;
-
-  if m.bracket = 'main' and m.round_index = 0 then
-    select bool_and(winner_id is not null) into round0_done
-      from matches where tournament_id = m.tournament_id and bracket = 'main' and round_index = 0;
-    if round0_done then
-      select repechaje into t_repechaje from tournaments where id = m.tournament_id;
-      if t_repechaje then
-        select count(*) into existing_rep from matches where tournament_id = m.tournament_id and bracket = 'repechaje';
-        if existing_rep = 0 then
-          select array_agg(case when team1_id = winner_id then team2_id else team1_id end)
-            into losers
-            from matches where tournament_id = m.tournament_id and bracket = 'main' and round_index = 0 and bye = false;
-          if array_length(losers, 1) >= 2 then
-            perform public.generar_bracket(m.tournament_id, 'repechaje', losers);
-          elsif array_length(losers, 1) = 1 then
-            update tournaments set repechaje_champion_id = losers[1] where id = m.tournament_id;
-          end if;
-        end if;
-      end if;
-    end if;
-  end if;
-end;
-$$;
-
-revoke execute on function public.declarar_ganador(uuid, uuid) from anon;
-revoke execute on function public.declarar_ganador(uuid, uuid) from public;
-revoke execute on function public.generar_bracket(uuid, text, uuid[]) from anon;
-revoke execute on function public.generar_bracket(uuid, text, uuid[]) from public;
-grant execute on function public.declarar_ganador(uuid, uuid) to authenticated;
 grant execute on function public.generar_bracket(uuid, text, uuid[]) to authenticated;
+
+-- 3) Crear jugadores sueltos ahora requiere estar logueado (organizador o admin).
+drop policy if exists "dueño o admin crea players" on players;
+create policy "dueño o admin crea players" on players for insert
+  with check (auth.uid() is not null);

@@ -1,3 +1,3 @@
-node_modules
-.next
-.env*.local
+/** @type {import('next').NextConfig} */
+const nextConfig = {};
+export default nextConfig;

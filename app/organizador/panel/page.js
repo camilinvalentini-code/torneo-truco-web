@@ -15,6 +15,26 @@ export default function PanelOrganizador() {
   const [misTorneos, setMisTorneos] = useState([]);
   const [otros, setOtros] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [claveNueva, setClaveNueva] = useState("");
+  const [claveMsg, setClaveMsg] = useState("");
+  const [claveLoading, setClaveLoading] = useState(false);
+
+  async function guardarClave() {
+    if (claveNueva.trim().length < 6) {
+      setClaveMsg("La contraseña tiene que tener al menos 6 caracteres.");
+      return;
+    }
+    setClaveLoading(true);
+    setClaveMsg("");
+    const { error } = await supabase.auth.updateUser({ password: claveNueva.trim() });
+    setClaveLoading(false);
+    if (error) {
+      setClaveMsg("No se pudo guardar. Probá de nuevo.");
+      return;
+    }
+    setClaveNueva("");
+    setClaveMsg("Listo — ya podés usar esta contraseña en cualquier dispositivo, junto con tu email.");
+  }
 
   const load = useCallback(async () => {
     if (!session) return;
@@ -86,6 +106,38 @@ export default function PanelOrganizador() {
         >
           🎴 Crear torneo nuevo
         </Link>
+
+        <div className="rounded-2xl p-4 mb-8 border" style={{ background: T.panel, borderColor: T.line }}>
+          <h2 className="font-bold mb-1 text-sm" style={{ color: T.gold }}>
+            🔑 Contraseña para tu equipo
+          </h2>
+          <p className="text-xs mb-3" style={{ color: T.inkDim }}>
+            Si en el bar varias personas usan esta cuenta desde celus distintos, configurá una contraseña acá — así entran directo con tu email + esta clave, sin necesitar el mail cada vez.
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={claveNueva}
+              onChange={(e) => setClaveNueva(e.target.value)}
+              type="password"
+              placeholder="Nueva contraseña (mín. 6 caracteres)"
+              className="flex-1 px-3 py-2 rounded-xl text-sm"
+              style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+            />
+            <button
+              onClick={guardarClave}
+              disabled={claveLoading}
+              className="px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-60"
+              style={{ background: T.gold, color: T.ink }}
+            >
+              {claveLoading ? "..." : "Guardar"}
+            </button>
+          </div>
+          {claveMsg && (
+            <p className="text-xs mt-2" style={{ color: T.goldBright }}>
+              {claveMsg}
+            </p>
+          )}
+        </div>
 
         <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
           Tus torneos ({misTorneos.length})

@@ -5,7 +5,7 @@ import { useTheme } from "../lib/theme";
 export default function SiteFooter() {
   const { T } = useTheme();
   return (
-    <footer className="max-w-3xl mx-auto px-4 pb-10 pt-6 text-center">
+    <footer className="max-w-3xl mx-auto px-4 pb-10 pt-6 text-center" style={{ background: T.bg }}>
       <a
         href="https://instagram.com/truco.cordoba"
         target="_blank"
