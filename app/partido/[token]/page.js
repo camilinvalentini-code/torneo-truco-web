@@ -15,6 +15,7 @@ export default function PartidoPage({ params }) {
   const { layout, marks, setLayout, setMarks } = useSkin();
   const [match, setMatch] = useState(null);
   const [teams, setTeams] = useState({});
+  const [puntosMax, setPuntosMax] = useState(30);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -27,6 +28,8 @@ export default function PartidoPage({ params }) {
       return;
     }
     setMatch(m);
+    const { data: t } = await supabase.from("tournaments").select("puntos_max").eq("id", m.tournament_id).single();
+    setPuntosMax(t?.puntos_max || 30);
     const ids = [m.team1_id, m.team2_id].filter(Boolean);
     if (ids.length) {
       const { data: ts } = await supabase.from("teams").select("*").in("id", ids);
@@ -57,10 +60,10 @@ export default function PartidoPage({ params }) {
   async function onChange(side, delta) {
     if (!match || busy || match.winner_id) return;
     const field = side === "A" ? "score_a" : "score_b";
-    const proyectado = Math.max(0, Math.min(30, match[field] + delta));
-    if (delta > 0 && proyectado >= 30) {
+    const proyectado = Math.max(0, Math.min(puntosMax, match[field] + delta));
+    if (delta > 0 && proyectado >= puntosMax) {
       const nombreGanador = side === "A" ? nameA : nameB;
-      const ok = window.confirm(`¿Confirmás que "${nombreGanador}" ganó 30 puntos? Esto cierra el partido y avanza de fase.`);
+      const ok = window.confirm(`¿Confirmás que "${nombreGanador}" ganó ${puntosMax} puntos? Esto cierra el partido y avanza de fase.`);
       if (!ok) return;
     }
     setBusy(true);
@@ -186,6 +189,7 @@ export default function PartidoPage({ params }) {
           disabled={busy || !!match.winner_id}
           layout={layout}
           marks={marks}
+          maxScore={puntosMax}
         />
 
         <Link

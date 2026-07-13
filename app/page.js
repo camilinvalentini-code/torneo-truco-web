@@ -61,10 +61,18 @@ export default function Home() {
         </Link>
         <Link
           href="/historial"
-          className="block text-center py-3 rounded-2xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+          className="block text-center py-3 rounded-2xl font-bold text-sm mb-3 transition-all duration-200 hover:scale-105 active:scale-95"
           style={{ background: T.panel, color: T.ink, border: `1px solid ${T.line}` }}
         >
           🏆 Ver historial de campeones
+        </Link>
+
+        <Link
+          href="/anotador"
+          className="block text-center py-3 rounded-2xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+          style={{ background: T.panel, color: T.ink, border: `1px solid ${T.line}` }}
+        >
+          Anotador
         </Link>
       </div>
     </div>

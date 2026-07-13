@@ -206,7 +206,7 @@ export default function AdminPage({ params }) {
   function sorteoSinJugar() {
     if (!tournament?.started) return false;
     const ronda0 = matches.filter((m) => m.bracket === "main" && m.round_index === 0);
-    return ronda0.every((m) => !m.winner_id || m.bye);
+    return ronda0.every((m) => m.bye || (!m.winner_id && m.score_a === 0 && m.score_b === 0));
   }
 
   async function resortear() {
@@ -289,7 +289,7 @@ export default function AdminPage({ params }) {
 
   function repechajeSinJugar() {
     if (!repMatches.length) return true;
-    return repMatches.every((m) => !m.winner_id);
+    return repMatches.every((m) => !m.winner_id && m.score_a === 0 && m.score_b === 0);
   }
 
   async function quitarDeRepechaje(teamIdAQuitar) {
@@ -487,54 +487,58 @@ export default function AdminPage({ params }) {
                         addTeam();
                       }
                     }}
-                    placeholder="Nombre del equipo"
+                    placeholder={tournament.categoria === "1v1" ? "Nombre del jugador" : "Nombre del equipo"}
                     className="px-3 py-2 rounded-xl text-sm"
                     style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
                   />
 
-                  {jugadoresChips.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {jugadoresChips.map((j) => (
-                        <span
-                          key={j.name}
-                          className="text-xs px-2 py-1 rounded-full font-semibold flex items-center gap-1"
-                          style={{ background: T.panelLight, color: T.ink }}
-                        >
-                          {j.name}
-                          <button onClick={() => quitarChip(j.name)} style={{ color: T.redDim }}>
-                            ✕
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="relative">
-                    <input
-                      value={jugadorInput}
-                      onChange={(e) => buscarJugadores(e.target.value)}
-                      onKeyDown={onJugadorKeyDown}
-                      placeholder="Agregar jugador (Enter para sumarlo)"
-                      className="w-full px-3 py-2 rounded-xl text-sm"
-                      style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
-                    />
-                    {sugerencias.length > 0 && (
-                      <div
-                        className="absolute z-10 w-full mt-1 rounded-xl border shadow-md overflow-hidden"
-                        style={{ background: T.panel, borderColor: T.line }}
-                      >
-                        {sugerencias.map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => agregarChip(s)}
-                            className="w-full text-left px-3 py-2 text-sm"
-                            style={{ color: T.ink }}
+                  {tournament.categoria !== "1v1" && (
+                    <>
+                      {jugadoresChips.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {jugadoresChips.map((j) => (
+                            <span
+                              key={j.name}
+                              className="text-xs px-2 py-1 rounded-full font-semibold flex items-center gap-1"
+                              style={{ background: T.panelLight, color: T.ink }}
+                            >
+                              {j.name}
+                              <button onClick={() => quitarChip(j.name)} style={{ color: T.redDim }}>
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="relative">
+                        <input
+                          value={jugadorInput}
+                          onChange={(e) => buscarJugadores(e.target.value)}
+                          onKeyDown={onJugadorKeyDown}
+                          placeholder="Agregar jugador (Enter para sumarlo)"
+                          className="w-full px-3 py-2 rounded-xl text-sm"
+                          style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+                        />
+                        {sugerencias.length > 0 && (
+                          <div
+                            className="absolute z-10 w-full mt-1 rounded-xl border shadow-md overflow-hidden"
+                            style={{ background: T.panel, borderColor: T.line }}
                           >
-                            {s.name}
-                          </button>
-                        ))}
+                            {sugerencias.map((s) => (
+                              <button
+                                key={s.id}
+                                onClick={() => agregarChip(s)}
+                                className="w-full text-left px-3 py-2 text-sm"
+                                style={{ color: T.ink }}
+                              >
+                                {s.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </>
+                  )}
 
                   <button
                     onClick={addTeam}

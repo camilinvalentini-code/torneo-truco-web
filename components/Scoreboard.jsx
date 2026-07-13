@@ -54,7 +54,7 @@ function SectionApilado({ label, count, marks, T }) {
   );
 }
 
-function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled }) {
+function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore }) {
   const Team = ({ label, score, onPlus, onMinus }) => (
     <div
       onClick={() => !disabled && onPlus()}
@@ -70,17 +70,25 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
       <div className="font-extrabold text-lg mb-2 text-center" style={{ color: T.ink }}>
         {label}
       </div>
-      <div className="flex items-start">
-        <SectionApilado label="Malas" count={Math.min(15, score)} marks={marks} T={T} />
-        <div className="w-px self-stretch mx-2" style={{ background: T.line }} />
-        <SectionApilado label="Buenas" count={Math.max(0, score - 15)} marks={marks} T={T} />
-      </div>
+      {maxScore === 30 ? (
+        <div className="flex items-start">
+          <SectionApilado label="Malas" count={Math.min(15, score)} marks={marks} T={T} />
+          <div className="w-px self-stretch mx-2" style={{ background: T.line }} />
+          <SectionApilado label="Buenas" count={Math.max(0, score - 15)} marks={marks} T={T} />
+        </div>
+      ) : (
+        <div className="flex justify-center gap-2">
+          {[0, 1, 2].map((g) => (
+            <Group key={g} value={Math.max(0, Math.min(5, score - g * 5))} marks={marks} T={T} />
+          ))}
+        </div>
+      )}
       <div className="flex justify-center items-baseline gap-1 mt-2">
         <span className="text-3xl font-black" style={{ color: T.goldBright, fontFamily: "Georgia, serif" }}>
           {score}
         </span>
         <span className="text-xs" style={{ color: T.inkDim }}>
-          / 30
+          / {maxScore}
         </span>
       </div>
       <div className="text-center text-[11px] mt-1" style={{ color: T.inkDim }}>
@@ -110,8 +118,9 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
   );
 }
 
-/* ---- vertical: equipo A | equipo B lado a lado, sin separar malas/buenas ---- */
-function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled }) {
+/* ---- vertical: equipo A | equipo B lado a lado, con línea a los 15 ---- */
+function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore }) {
+  const numGroups = maxScore / 5;
   const Col = ({ label, score, onPlus, onMinus }) => (
     <div
       onClick={() => !disabled && onPlus()}
@@ -122,8 +131,13 @@ function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disa
         {label}
       </div>
       <div className="flex flex-col gap-2 items-center">
-        {[0, 1, 2, 3, 4, 5].map((g) => (
-          <Group key={g} value={Math.max(0, Math.min(5, score - g * 5))} marks={marks} T={T} />
+        {Array.from({ length: numGroups }, (_, g) => (
+          <React.Fragment key={g}>
+            {maxScore === 30 && g === 3 && (
+              <div className="w-8 border-t my-0.5" style={{ borderColor: T.gold, opacity: 0.5 }} />
+            )}
+            <Group value={Math.max(0, Math.min(5, score - g * 5))} marks={marks} T={T} />
+          </React.Fragment>
         ))}
       </div>
       <div className="flex justify-center items-baseline gap-1 mt-3">
@@ -131,7 +145,7 @@ function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disa
           {score}
         </span>
         <span className="text-xs" style={{ color: T.inkDim }}>
-          /30
+          /{maxScore}
         </span>
       </div>
       <div className="text-[10px] mt-1" style={{ color: T.inkDim }}>
@@ -164,7 +178,7 @@ function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disa
   );
 }
 
-export default function Scoreboard({ nameA, nameB, scoreA, scoreB, onChange, disabled, layout = "apilado", marks = "palito" }) {
+export default function Scoreboard({ nameA, nameB, scoreA, scoreB, onChange, disabled, layout = "apilado", marks = "palito", maxScore = 30 }) {
   const { T } = useTheme();
   const Layout = layout === "vertical" ? LayoutVertical : LayoutApilado;
   return (
@@ -177,6 +191,7 @@ export default function Scoreboard({ nameA, nameB, scoreA, scoreB, onChange, dis
       T={T}
       onChange={onChange}
       disabled={disabled}
+      maxScore={maxScore}
     />
   );
 }

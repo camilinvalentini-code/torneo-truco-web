@@ -25,6 +25,7 @@ export default function CrearTorneo() {
   const [fecha, setFecha] = useState(hoy());
   const [categoria, setCategoria] = useState("2v2");
   const [repechaje, setRepechaje] = useState(false);
+  const [puntosMax, setPuntosMax] = useState(30);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -88,6 +89,7 @@ export default function CrearTorneo() {
         fecha,
         categoria,
         repechaje,
+        puntos_max: puntosMax,
         organizador_id: session.user.id,
       })
       .select()
@@ -229,7 +231,7 @@ export default function CrearTorneo() {
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
             <div className="flex rounded-xl overflow-hidden border mt-1" style={{ borderColor: T.gold }}>
-              {["2v2", "3v3"].map((c) => (
+              {["1v1", "2v2", "3v3"].map((c) => (
                 <button
                   key={c}
                   onClick={() => setCategoria(c)}
@@ -244,6 +246,24 @@ export default function CrearTorneo() {
               <input type="checkbox" checked={repechaje} onChange={(e) => setRepechaje(e.target.checked)} />
               Con repechaje
             </label>
+
+            <div className="mt-2">
+              <span className="text-xs" style={{ color: T.inkDim }}>
+                Tanteador a:
+              </span>
+              <div className="flex rounded-xl overflow-hidden border mt-1" style={{ borderColor: T.gold }}>
+                {[30, 15].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPuntosMax(p)}
+                    className="flex-1 py-2 text-sm font-bold"
+                    style={{ background: puntosMax === p ? T.gold : "transparent", color: puntosMax === p ? T.ink : T.inkDim }}
+                  >
+                    {p} puntos
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -288,7 +308,7 @@ export default function CrearTorneo() {
               />
             </div>
             <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: T.redDim }}>
-              {["2v2", "3v3"].map((c) => (
+              {["1v1", "2v2", "3v3"].map((c) => (
                 <button
                   key={c}
                   onClick={() => setTestCategoria(c)}
