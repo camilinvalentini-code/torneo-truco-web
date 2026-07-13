@@ -20,7 +20,7 @@ export default function AnotadorLibre() {
   const [scoreB, setScoreB] = useState(0);
   const [frase, setFrase] = useState("");
   const [cargado, setCargado] = useState(false);
-  const [mostrarAjustes, setMostrarAjustes] = useState(false);
+  const [mostrarAjustes, setMostrarAjustes] = useState(true);
 
   useEffect(() => {
     try {
@@ -76,7 +76,7 @@ export default function AnotadorLibre() {
               className="text-xs underline"
               style={{ color: T.inkDim }}
             >
-              {mostrarAjustes ? "ocultar diseño" : "diseño"}
+              {mostrarAjustes ? "Ocultar diseño" : "Diseño"}
             </button>
             <ThemeToggleButton />
           </div>
