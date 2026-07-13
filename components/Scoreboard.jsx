@@ -134,7 +134,11 @@ function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disa
         {Array.from({ length: numGroups }, (_, g) => (
           <React.Fragment key={g}>
             {maxScore === 30 && g === 3 && (
-              <div className="w-8 border-t my-0.5" style={{ borderColor: T.gold, opacity: 0.5 }} />
+              <div className="w-full flex items-center gap-2 my-1">
+                <div style={{ flex: 1, borderTop: `2px solid ${T.gold}` }} />
+                <span className="text-[9px] font-bold" style={{ color: T.inkDim }}>15</span>
+                <div style={{ flex: 1, borderTop: `2px solid ${T.gold}` }} />
+              </div>
             )}
             <Group value={Math.max(0, Math.min(5, score - g * 5))} marks={marks} T={T} />
           </React.Fragment>
