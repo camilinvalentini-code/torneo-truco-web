@@ -55,7 +55,7 @@ function SectionApilado({ label, count, marks, T }) {
 }
 
 /* ---- nombre del equipo: texto fijo, o editable si se pide ---- */
-function NombreEquipo({ label, editable, onRename, T, className, style }) {
+function NombreEquipo({ label, editable, onRename, className, style }) {
   if (!editable) {
     return (
       <div className={className} style={style}>
@@ -75,8 +75,14 @@ function NombreEquipo({ label, editable, onRename, T, className, style }) {
   );
 }
 
-function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore, editableNames, onRenameA, onRenameB }) {
-  const Team = ({ label, score, onPlus, onMinus, onRename }) => (
+/* ---- IMPORTANTE: Team y Col viven acá afuera, a nivel de módulo. Si se
+   definieran adentro de LayoutApilado/LayoutVertical, React las trataría
+   como un componente "nuevo" en cada letra que se tipea (porque la función
+   cambia de referencia en cada render), y eso hace que el navegador tire
+   el <input> viejo y ponga uno nuevo — perdiendo el foco a cada tecla. ---- */
+
+function Team({ label, score, onPlus, onMinus, onRename, editableNames, disabled, marks, maxScore, T }) {
+  return (
     <div
       onClick={() => !disabled && onPlus()}
       className="py-4 px-2 rounded-xl transition-colors duration-150"
@@ -92,7 +98,6 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
         label={label}
         editable={editableNames}
         onRename={onRename}
-        T={T}
         className="font-extrabold text-lg mb-2 text-center"
         style={{ color: T.ink }}
       />
@@ -135,19 +140,27 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
       </div>
     </div>
   );
+}
+
+function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore, editableNames, onRenameA, onRenameB }) {
   return (
     <div className="rounded-2xl border shadow-sm px-3" style={{ background: T.panel, borderColor: T.line }}>
-      <Team label={nameA} score={scoreA} onPlus={() => onChange("A", 1)} onMinus={() => onChange("A", -1)} onRename={onRenameA} />
+      <Team
+        label={nameA} score={scoreA} onPlus={() => onChange("A", 1)} onMinus={() => onChange("A", -1)}
+        onRename={onRenameA} editableNames={editableNames} disabled={disabled} marks={marks} maxScore={maxScore} T={T}
+      />
       <div style={{ borderTop: `2px dashed ${T.line}` }} />
-      <Team label={nameB} score={scoreB} onPlus={() => onChange("B", 1)} onMinus={() => onChange("B", -1)} onRename={onRenameB} />
+      <Team
+        label={nameB} score={scoreB} onPlus={() => onChange("B", 1)} onMinus={() => onChange("B", -1)}
+        onRename={onRenameB} editableNames={editableNames} disabled={disabled} marks={marks} maxScore={maxScore} T={T}
+      />
     </div>
   );
 }
 
-/* ---- vertical: equipo A | equipo B lado a lado, con línea a los 15 ---- */
-function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore, editableNames, onRenameA, onRenameB }) {
+function Col({ label, score, onPlus, onMinus, onRename, editableNames, disabled, marks, maxScore, T }) {
   const numGroups = maxScore / 5;
-  const Col = ({ label, score, onPlus, onMinus, onRename }) => (
+  return (
     <div
       onClick={() => !disabled && onPlus()}
       className="flex-1 text-center py-4 px-1 rounded-xl"
@@ -157,7 +170,6 @@ function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disa
         label={label}
         editable={editableNames}
         onRename={onRename}
-        T={T}
         className="font-extrabold text-base mb-3 truncate text-center"
         style={{ color: T.ink }}
       />
@@ -201,14 +213,23 @@ function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disa
       </div>
     </div>
   );
+}
+
+function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore, editableNames, onRenameA, onRenameB }) {
   return (
     <div
       className="rounded-2xl border shadow-sm px-3 flex items-start"
       style={{ background: T.panel, borderColor: T.line }}
     >
-      <Col label={nameA} score={scoreA} onPlus={() => onChange("A", 1)} onMinus={() => onChange("A", -1)} onRename={onRenameA} />
+      <Col
+        label={nameA} score={scoreA} onPlus={() => onChange("A", 1)} onMinus={() => onChange("A", -1)}
+        onRename={onRenameA} editableNames={editableNames} disabled={disabled} marks={marks} maxScore={maxScore} T={T}
+      />
       <div className="w-px self-stretch my-4" style={{ background: T.line }} />
-      <Col label={nameB} score={scoreB} onPlus={() => onChange("B", 1)} onMinus={() => onChange("B", -1)} onRename={onRenameB} />
+      <Col
+        label={nameB} score={scoreB} onPlus={() => onChange("B", 1)} onMinus={() => onChange("B", -1)}
+        onRename={onRenameB} editableNames={editableNames} disabled={disabled} marks={marks} maxScore={maxScore} T={T}
+      />
     </div>
   );
 }
