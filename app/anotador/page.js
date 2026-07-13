@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTheme } from "../../lib/theme";
 import { useSkin } from "../../lib/scoreboardSkin";
@@ -7,6 +7,8 @@ import { fraseCampeonAlAzar } from "../../lib/champFrases";
 import ThemeToggleButton from "../../components/ThemeToggleButton";
 import SuitIcon from "../../components/SuitIcon";
 import Scoreboard from "../../components/Scoreboard";
+
+const CLAVE = "torneotruco:anotador-libre";
 
 export default function AnotadorLibre() {
   const { T } = useTheme();
@@ -18,6 +20,37 @@ export default function AnotadorLibre() {
   const [scoreA, setScoreA] = useState(0);
   const [scoreB, setScoreB] = useState(0);
   const [frase] = useState(() => fraseCampeonAlAzar());
+  const [cargado, setCargado] = useState(false);
+
+  // Al abrir la página, recupera el partido que había quedado a medias (si hay).
+  useEffect(() => {
+    try {
+      const guardado = window.localStorage.getItem(CLAVE);
+      if (guardado) {
+        const d = JSON.parse(guardado);
+        setNameA(d.nameA || "");
+        setNameB(d.nameB || "");
+        setPuntosMax(d.puntosMax || 30);
+        setEmpezado(!!d.empezado);
+        setScoreA(d.scoreA || 0);
+        setScoreB(d.scoreB || 0);
+      }
+    } catch (e) {
+      /* nada guardado todavía */
+    }
+    setCargado(true);
+  }, []);
+
+  // Cada cambio se guarda solo, así sobrevive a cerrar la pestaña.
+  useEffect(() => {
+    if (!cargado) return;
+    try {
+      window.localStorage.setItem(
+        CLAVE,
+        JSON.stringify({ nameA, nameB, puntosMax, empezado, scoreA, scoreB })
+      );
+    } catch (e) {}
+  }, [cargado, nameA, nameB, puntosMax, empezado, scoreA, scoreB]);
 
   function empezar() {
     setEmpezado(true);
@@ -39,6 +72,9 @@ export default function AnotadorLibre() {
     setScoreB(0);
     setNameA("");
     setNameB("");
+    try {
+      window.localStorage.removeItem(CLAVE);
+    } catch (e) {}
   }
 
   const ganador = scoreA >= puntosMax ? nameA || "Equipo A" : scoreB >= puntosMax ? nameB || "Equipo B" : null;
