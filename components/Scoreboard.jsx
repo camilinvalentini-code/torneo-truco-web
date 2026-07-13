@@ -54,8 +54,29 @@ function SectionApilado({ label, count, marks, T }) {
   );
 }
 
-function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore }) {
-  const Team = ({ label, score, onPlus, onMinus }) => (
+/* ---- nombre del equipo: texto fijo, o editable si se pide ---- */
+function NombreEquipo({ label, editable, onRename, T, className, style }) {
+  if (!editable) {
+    return (
+      <div className={className} style={style}>
+        {label}
+      </div>
+    );
+  }
+  return (
+    <input
+      value={label}
+      onChange={(e) => onRename(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      placeholder="Tocá para poner un nombre"
+      className={className}
+      style={{ ...style, background: "transparent", border: "none", outline: "none", width: "100%" }}
+    />
+  );
+}
+
+function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore, editableNames, onRenameA, onRenameB }) {
+  const Team = ({ label, score, onPlus, onMinus, onRename }) => (
     <div
       onClick={() => !disabled && onPlus()}
       className="py-4 px-2 rounded-xl transition-colors duration-150"
@@ -67,9 +88,14 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
         e.currentTarget.style.background = "transparent";
       }}
     >
-      <div className="font-extrabold text-lg mb-2 text-center" style={{ color: T.ink }}>
-        {label}
-      </div>
+      <NombreEquipo
+        label={label}
+        editable={editableNames}
+        onRename={onRename}
+        T={T}
+        className="font-extrabold text-lg mb-2 text-center"
+        style={{ color: T.ink }}
+      />
       {maxScore === 30 ? (
         <div className="flex items-start">
           <SectionApilado label="Malas" count={Math.min(15, score)} marks={marks} T={T} />
@@ -111,25 +137,30 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
   );
   return (
     <div className="rounded-2xl border shadow-sm px-3" style={{ background: T.panel, borderColor: T.line }}>
-      <Team label={nameA} score={scoreA} onPlus={() => onChange("A", 1)} onMinus={() => onChange("A", -1)} />
+      <Team label={nameA} score={scoreA} onPlus={() => onChange("A", 1)} onMinus={() => onChange("A", -1)} onRename={onRenameA} />
       <div style={{ borderTop: `2px dashed ${T.line}` }} />
-      <Team label={nameB} score={scoreB} onPlus={() => onChange("B", 1)} onMinus={() => onChange("B", -1)} />
+      <Team label={nameB} score={scoreB} onPlus={() => onChange("B", 1)} onMinus={() => onChange("B", -1)} onRename={onRenameB} />
     </div>
   );
 }
 
 /* ---- vertical: equipo A | equipo B lado a lado, con línea a los 15 ---- */
-function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore }) {
+function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disabled, maxScore, editableNames, onRenameA, onRenameB }) {
   const numGroups = maxScore / 5;
-  const Col = ({ label, score, onPlus, onMinus }) => (
+  const Col = ({ label, score, onPlus, onMinus, onRename }) => (
     <div
       onClick={() => !disabled && onPlus()}
       className="flex-1 text-center py-4 px-1 rounded-xl"
       style={{ cursor: disabled ? "default" : "pointer" }}
     >
-      <div className="font-extrabold text-base mb-3 truncate" style={{ color: T.ink }}>
-        {label}
-      </div>
+      <NombreEquipo
+        label={label}
+        editable={editableNames}
+        onRename={onRename}
+        T={T}
+        className="font-extrabold text-base mb-3 truncate text-center"
+        style={{ color: T.ink }}
+      />
       <div className="flex flex-col gap-2 items-center">
         {Array.from({ length: numGroups }, (_, g) => (
           <React.Fragment key={g}>
@@ -175,14 +206,17 @@ function LayoutVertical({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disa
       className="rounded-2xl border shadow-sm px-3 flex items-start"
       style={{ background: T.panel, borderColor: T.line }}
     >
-      <Col label={nameA} score={scoreA} onPlus={() => onChange("A", 1)} onMinus={() => onChange("A", -1)} />
+      <Col label={nameA} score={scoreA} onPlus={() => onChange("A", 1)} onMinus={() => onChange("A", -1)} onRename={onRenameA} />
       <div className="w-px self-stretch my-4" style={{ background: T.line }} />
-      <Col label={nameB} score={scoreB} onPlus={() => onChange("B", 1)} onMinus={() => onChange("B", -1)} />
+      <Col label={nameB} score={scoreB} onPlus={() => onChange("B", 1)} onMinus={() => onChange("B", -1)} onRename={onRenameB} />
     </div>
   );
 }
 
-export default function Scoreboard({ nameA, nameB, scoreA, scoreB, onChange, disabled, layout = "apilado", marks = "palito", maxScore = 30 }) {
+export default function Scoreboard({
+  nameA, nameB, scoreA, scoreB, onChange, disabled, layout = "apilado", marks = "palito", maxScore = 30,
+  editableNames = false, onRenameA, onRenameB,
+}) {
   const { T } = useTheme();
   const Layout = layout === "vertical" ? LayoutVertical : LayoutApilado;
   return (
@@ -196,6 +230,9 @@ export default function Scoreboard({ nameA, nameB, scoreA, scoreB, onChange, dis
       onChange={onChange}
       disabled={disabled}
       maxScore={maxScore}
+      editableNames={editableNames}
+      onRenameA={onRenameA}
+      onRenameB={onRenameB}
     />
   );
 }
