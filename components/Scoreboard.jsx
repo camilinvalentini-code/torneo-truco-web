@@ -82,6 +82,9 @@ function NombreEquipo({ label, editable, onRename, className, style }) {
    el <input> viejo y ponga uno nuevo — perdiendo el foco a cada tecla. ---- */
 
 function Team({ label, score, onPlus, onMinus, onRename, editableNames, disabled, marks, maxScore, T }) {
+  const conCorte = maxScore % 10 === 0; // 20/30/40 se dividen en malas/buenas; 15 no
+  const mitad = maxScore / 2;
+  const numGrupos = maxScore / 5;
   return (
     <div
       onClick={() => !disabled && onPlus()}
@@ -101,15 +104,15 @@ function Team({ label, score, onPlus, onMinus, onRename, editableNames, disabled
         className="font-extrabold text-lg mb-2 text-center"
         style={{ color: T.ink }}
       />
-      {maxScore === 30 ? (
+      {conCorte ? (
         <div className="flex items-start">
-          <SectionApilado label="Malas" count={Math.min(15, score)} marks={marks} T={T} />
+          <SectionApilado label="Malas" count={Math.min(mitad, score)} marks={marks} T={T} />
           <div className="w-px self-stretch mx-2" style={{ background: T.line }} />
-          <SectionApilado label="Buenas" count={Math.max(0, score - 15)} marks={marks} T={T} />
+          <SectionApilado label="Buenas" count={Math.max(0, score - mitad)} marks={marks} T={T} />
         </div>
       ) : (
-        <div className="flex justify-center gap-2">
-          {[0, 1, 2].map((g) => (
+        <div className="flex justify-center gap-2 flex-wrap">
+          {Array.from({ length: numGrupos }, (_, g) => (
             <Group key={g} value={Math.max(0, Math.min(5, score - g * 5))} marks={marks} T={T} />
           ))}
         </div>
@@ -160,6 +163,8 @@ function LayoutApilado({ nameA, nameB, scoreA, scoreB, marks, T, onChange, disab
 
 function Col({ label, score, onPlus, onMinus, onRename, editableNames, disabled, marks, maxScore, T }) {
   const numGroups = maxScore / 5;
+  const conCorte = maxScore % 10 === 0;
+  const grupoDeCorte = maxScore / 10; // después de este grupo va la línea de la mitad
   return (
     <div
       onClick={() => !disabled && onPlus()}
@@ -176,10 +181,10 @@ function Col({ label, score, onPlus, onMinus, onRename, editableNames, disabled,
       <div className="flex flex-col gap-2 items-center">
         {Array.from({ length: numGroups }, (_, g) => (
           <React.Fragment key={g}>
-            {maxScore === 30 && g === 3 && (
+            {conCorte && g === grupoDeCorte && (
               <div className="w-full flex items-center gap-2 my-1">
                 <div style={{ flex: 1, borderTop: `2px solid ${T.gold}` }} />
-                <span className="text-[9px] font-bold" style={{ color: T.inkDim }}>15</span>
+                <span className="text-[9px] font-bold" style={{ color: T.inkDim }}>{maxScore / 2}</span>
                 <div style={{ flex: 1, borderTop: `2px solid ${T.gold}` }} />
               </div>
             )}

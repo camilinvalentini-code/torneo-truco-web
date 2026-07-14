@@ -121,7 +121,7 @@ export default function AnotadorLibre() {
               </div>
             </div>
             <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: T.gold }}>
-              {[30, 15].map((p) => (
+              {[15, 20, 30, 40].map((p) => (
                 <button
                   key={p}
                   onClick={() => setPuntosMax(p)}
