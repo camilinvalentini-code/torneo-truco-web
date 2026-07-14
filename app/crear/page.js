@@ -161,7 +161,7 @@ export default function CrearTorneo() {
             <input
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              placeholder="Nombre del torneo* (ej: BOKA TALÓN)"
+              placeholder="Nombre del torneo*"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
@@ -218,7 +218,7 @@ export default function CrearTorneo() {
             <input
               value={lugar}
               onChange={(e) => setLugar(e.target.value)}
-              placeholder="Lugar* (ej: Vidon Bar, o Mi casa)"
+              placeholder="Lugar*"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
