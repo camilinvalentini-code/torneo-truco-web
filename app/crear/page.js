@@ -35,10 +35,10 @@ export default function CrearTorneo() {
   const [testLoading, setTestLoading] = useState(false);
 
   const NOMBRES_PRUEBA = [
-    "Los Ases", "Ancho Falso", "Truco y Retruco", "Sol de Mayo", "Río Platenses",
-    "Cuatro Vientos", "Malas y Buenas", "Envido Va", "Los Tantos", "Flor de Mesa",
-    "Che Pintó", "Los Mentirosos", "Vale Cuatro", "Siete de Oro", "Los Cantores",
-    "Tres Solo", "Falta Envido", "Los Aguante", "Con Flor y Todo", "Doble Falta",
+    "Los Guapos", "Ancho Falso", "Falta Envido y Truco", "Sol de Mayo", "Río Platenses",
+    "La Peña", "Malas y Buenas", "Envido Va", "Los Tantos", "Flor de Mesa",
+    "Che Pintó", "Los Mentirosos", "Vale Cuatro", "33 de Mano", "Los Cantores",
+    "Una Punta", "Falta el Vino", "Los Aguante", "Las Perdedoras", "Las Gauchas",
   ];
 
   useEffect(() => {
