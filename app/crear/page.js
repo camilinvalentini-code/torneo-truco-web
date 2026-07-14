@@ -35,10 +35,10 @@ export default function CrearTorneo() {
   const [testLoading, setTestLoading] = useState(false);
 
   const NOMBRES_PRUEBA = [
-    "Los Ases", "Ancho Falso", "Truco y Retruco", "Sol de Mayo", "Río Platenses",
-    "Cuatro Vientos", "Malas y Buenas", "Envido Va", "Los Tantos", "Flor de Mesa",
-    "Che Pintó", "Los Mentirosos", "Vale Cuatro", "Siete de Oro", "Los Cantores",
-    "Tres Solo", "Falta Envido", "Los Aguante", "Con Flor y Todo", "Doble Falta",
+    "Los Guapos", "Ancho Falso", "Falta Envido y Truco", "Sol de Mayo", "Río Platenses",
+    "La Peña", "Malas y Buenas", "Envido Va", "Los Tantos", "Flor de Mesa",
+    "Che Pintó", "Los Mentirosos", "Vale Cuatro", "33 de Mano", "Los Cantores",
+    "Una Punta", "Falta el Vino", "Los Aguante", "Las Perdedoras", "Las Gauchas",
   ];
 
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function CrearTorneo() {
             <input
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              placeholder="Nombre del torneo* (ej: BOKA TALÓN)"
+              placeholder="Nombre del torneo*"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
@@ -192,7 +192,7 @@ export default function CrearTorneo() {
                 className="px-3 py-2 rounded-xl text-sm flex-1"
                 style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
               >
-                <option value="">Provincia*</option>
+                <option value="">{pais === "UY" ? "Departamento*" : "Provincia*"}</option>
                 {provinciasDe(pais).map((p) => (
                   <option key={p} value={p}>
                     {p}
@@ -218,7 +218,7 @@ export default function CrearTorneo() {
             <input
               value={lugar}
               onChange={(e) => setLugar(e.target.value)}
-              placeholder="Lugar* (ej: Vidon Bar, o Mi casa)"
+              placeholder="Lugar*"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
