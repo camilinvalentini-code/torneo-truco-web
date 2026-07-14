@@ -39,14 +39,14 @@ function Group({ value, marks, T }) {
 }
 
 /* ---- apilado: malas | buenas lado a lado, dentro de cada equipo ---- */
-function SectionApilado({ label, count, marks, T }) {
+function SectionApilado({ label, count, marks, T, grupos = 3 }) {
   return (
     <div className="flex-1 text-center">
       <div className="text-[10px] uppercase tracking-wide font-bold mb-1.5" style={{ color: T.inkDim }}>
         {label}
       </div>
       <div className="flex gap-2 flex-wrap justify-center">
-        {[0, 1, 2].map((g) => (
+        {Array.from({ length: grupos }, (_, g) => (
           <Group key={g} value={Math.max(0, Math.min(5, count - g * 5))} marks={marks} T={T} />
         ))}
       </div>
@@ -106,9 +106,9 @@ function Team({ label, score, onPlus, onMinus, onRename, editableNames, disabled
       />
       {conCorte ? (
         <div className="flex items-start">
-          <SectionApilado label="Malas" count={Math.min(mitad, score)} marks={marks} T={T} />
+          <SectionApilado label="Malas" count={Math.min(mitad, score)} marks={marks} T={T} grupos={mitad / 5} />
           <div className="w-px self-stretch mx-2" style={{ background: T.line }} />
-          <SectionApilado label="Buenas" count={Math.max(0, score - mitad)} marks={marks} T={T} />
+          <SectionApilado label="Buenas" count={Math.max(0, score - mitad)} marks={marks} T={T} grupos={mitad / 5} />
         </div>
       ) : (
         <div className="flex justify-center gap-2 flex-wrap">
