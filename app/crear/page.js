@@ -192,7 +192,7 @@ export default function CrearTorneo() {
                 className="px-3 py-2 rounded-xl text-sm flex-1"
                 style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
               >
-                <option value="">Provincia*</option>
+                <option value="">{pais === "UY" ? "Departamento*" : "Provincia*"}</option>
                 {provinciasDe(pais).map((p) => (
                   <option key={p} value={p}>
                     {p}
