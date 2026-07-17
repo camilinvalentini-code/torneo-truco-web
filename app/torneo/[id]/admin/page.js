@@ -228,6 +228,32 @@ export default function AdminPage({ params }) {
     load();
   }
 
+  async function quitarEquipoDelTorneo(teamId) {
+    const nombre = teamsById[teamId]?.name || "este equipo";
+    if (!window.confirm(`¿Sacar a "${nombre}" del torneo? Se rearma el cuadro con los que queden.`)) return;
+    setError("");
+    const restantes = teams.filter((t) => t.id !== teamId).map((t) => t.id);
+    if (restantes.length < 3) {
+      setError("No se puede sacar: quedarían menos de 3 equipos.");
+      return;
+    }
+    await supabase.from("matches").delete().eq("tournament_id", id).eq("bracket", "main");
+    await supabase.from("matches").delete().eq("tournament_id", id).eq("bracket", "repechaje");
+    await supabase.from("tournaments").update({ champion_id: null, repechaje_champion_id: null }).eq("id", id);
+    await supabase.from("teams").delete().eq("id", teamId);
+    const { error: err } = await supabase.rpc("generar_bracket", {
+      p_tournament_id: id,
+      p_bracket: "main",
+      p_team_ids: restantes,
+    });
+    if (err) {
+      setError("No se pudo sacar al equipo. Probá de nuevo.");
+      console.error(err);
+      return;
+    }
+    load();
+  }
+
   async function openQr(token) {
     const url = `${origin}/partido/${token}`;
     const dataUrl = await QRCode.toDataURL(url, { margin: 1, width: 260, color: { dark: "#33453E", light: "#FBF3E3" } });
@@ -605,6 +631,34 @@ export default function AdminPage({ params }) {
               >
                 🔄 Resortear (todavía no se jugó nada)
               </button>
+            )}
+
+            {sorteoSinJugar() && (
+              <div className="rounded-2xl p-4 mb-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
+                <p className="text-xs mb-2" style={{ color: T.inkDim }}>
+                  ¿Algún equipo no va a jugar (perdió un desempate, se bajó, etc.)? Sacalo — el cuadro se rearma
+                  solo con los que queden.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {teams.map((t) => (
+                    <span
+                      key={t.id}
+                      className="text-xs pl-3 pr-1.5 py-1.5 rounded-full font-semibold flex items-center gap-1.5"
+                      style={{ background: T.panelLight, color: T.ink }}
+                    >
+                      {t.name}
+                      <button
+                        onClick={() => quitarEquipoDelTorneo(t.id)}
+                        className="w-5 h-5 rounded-full flex items-center justify-center"
+                        style={{ background: T.redDim, color: "#FFFFFF" }}
+                        title="Sacar del torneo"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
 
             {!tournament.champion_id && (
