@@ -110,7 +110,26 @@ export default function PanelOrganizador() {
       </div>
     );
   }
-  if (!profile || profile.status !== "aprobado") {
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: T.bg }}>
+        <div className="text-center max-w-sm">
+          <p className="text-sm mb-4" style={{ color: T.ink }}>
+            Tenés una sesión válida, pero todavía no existe tu perfil en la base — puede tardar unos segundos
+            después de registrarte. Si esto no cambia, avisale a Camilo.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-block px-5 py-2.5 rounded-2xl font-bold text-sm"
+            style={{ background: T.gold, color: T.ink }}
+          >
+            Volver a intentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+  if (profile.status !== "aprobado") {
     return (
       <div className="min-h-screen flex items-center justify-center px-4" style={{ background: T.bg }}>
         <div className="text-center max-w-sm">
