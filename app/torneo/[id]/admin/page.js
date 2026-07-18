@@ -460,7 +460,7 @@ export default function AdminPage({ params }) {
           <SuitIcon suit="copa" size={20} />
         </div>
         <h1 className="text-2xl font-black text-center" style={{ color: T.ink, fontFamily: "Georgia, serif" }}>
-          {tournament.nombre || "Torneo de Truco"} · panel del organizador
+          {tournament.nombre || "Torneo de Truco"} · Panel del Organizador
         </h1>
         <p className="text-center text-xs mb-1" style={{ color: T.inkDim }}>
           {[tournament.ubicacion, tournament.fecha, tournament.categoria].filter(Boolean).join(" · ")}
