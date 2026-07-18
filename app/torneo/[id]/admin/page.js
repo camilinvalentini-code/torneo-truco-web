@@ -11,6 +11,7 @@ import BracketDisplay from "../../../../components/BracketDisplay";
 import ThemeToggleButton from "../../../../components/ThemeToggleButton";
 import SuitIcon from "../../../../components/SuitIcon";
 import { fraseCampeonAlAzar } from "../../../../lib/champFrases";
+import { roundLabel } from "../../../../lib/bracket";
 
 export default function AdminPage({ params }) {
   const { id } = params;
@@ -414,9 +415,25 @@ export default function AdminPage({ params }) {
   const repMatches = matches.filter((m) => m.bracket === "repechaje");
   const publicUrl = `${origin}/torneo/${id}`;
 
+  function rondaActualIndex() {
+    const porRonda = {};
+    mainMatches.forEach((m) => {
+      porRonda[m.round_index] = porRonda[m.round_index] || [];
+      porRonda[m.round_index].push(m);
+    });
+    const indices = Object.keys(porRonda).map(Number).sort((a, b) => a - b);
+    for (const idx of indices) {
+      const todosListos = porRonda[idx].every((m) => m.bye || m.winner_id);
+      if (!todosListos) return idx;
+    }
+    return indices[indices.length - 1] ?? 0; // torneo ya terminado: mostrá la última
+  }
+
   function textoCruces() {
-    const ronda0 = mainMatches.filter((m) => m.round_index === 0).sort((a, b) => a.match_index - b.match_index);
-    const lineas = ronda0
+    const idx = rondaActualIndex();
+    const rondaMatches = mainMatches.filter((m) => m.round_index === idx).sort((a, b) => a.match_index - b.match_index);
+    const nombreRonda = roundLabel(rondaMatches.length);
+    const lineas = rondaMatches
       .filter((m) => m.team1_id) // en modo Vidon, los casilleros del todo vacíos no se anuncian
       .map((m) => {
         const n1 = teamsById[m.team1_id]?.name || "?";
@@ -427,7 +444,7 @@ export default function AdminPage({ params }) {
       });
     const link = profile?.slug ? `torneotruco.com.ar/t/${profile.slug}` : publicUrl;
     const fecha = tournament.fecha ? ` — ${tournament.fecha}` : "";
-    return `⚔️ *${tournament.nombre}*${fecha}\n\n${lineas.join("\n")}\n\n${link}`;
+    return `⚔️ *${tournament.nombre}*${fecha}\n📋 ${nombreRonda}\n\n${lineas.join("\n")}\n\n${link}`;
   }
 
   async function compartirCruces() {
@@ -925,6 +942,8 @@ export default function AdminPage({ params }) {
 // sin tener que scrollear todo el cuadro para llegar hasta ahí.
 function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
   const { T } = useTheme();
+  const [abiertoPendientes, setAbiertoPendientes] = useState(true);
+  const [abiertoJugados, setAbiertoJugados] = useState(true);
   const pendientes = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && !m.winner_id && m.match_token);
   const jugados = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && m.winner_id);
 
@@ -940,53 +959,72 @@ function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
     <div>
       {pendientes.length > 0 && (
         <>
-          <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
-            Por jugar ({pendientes.length})
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-            {pendientes.map((m) => (
-              <div
-                key={m.id}
-                className="rounded-2xl border p-3 shadow-sm flex flex-col gap-2"
-                style={{ background: T.panel, borderColor: T.line }}
-              >
-                <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setAbiertoPendientes((v) => !v)}
+            className="w-full flex items-center justify-between mb-3"
+          >
+            <h2 className="font-bold text-sm" style={{ color: T.gold }}>
+              Por jugar ({pendientes.length})
+            </h2>
+            <span className="text-xs" style={{ color: T.gold }}>
+              {abiertoPendientes ? "▲" : "▼"}
+            </span>
+          </button>
+          {abiertoPendientes && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+              {pendientes.map((m) => (
+                <div
+                  key={m.id}
+                  className="rounded-2xl border p-3 shadow-sm flex flex-col gap-2"
+                  style={{ background: T.panel, borderColor: T.line }}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => onDeclareWinner(m, m.team1_id)}
+                      className="text-sm font-semibold text-right px-2 py-1.5 rounded-lg transition-colors duration-150 flex-1 truncate"
+                      style={{ color: T.ink }}
+                    >
+                      {teamsById[m.team1_id]?.name}
+                    </button>
+                    <span className="text-xs flex-shrink-0" style={{ color: T.inkDim }}>
+                      vs
+                    </span>
+                    <button
+                      onClick={() => onDeclareWinner(m, m.team2_id)}
+                      className="text-sm font-semibold text-left px-2 py-1.5 rounded-lg transition-colors duration-150 flex-1 truncate"
+                      style={{ color: T.ink }}
+                    >
+                      {teamsById[m.team2_id]?.name}
+                    </button>
+                  </div>
                   <button
-                    onClick={() => onDeclareWinner(m, m.team1_id)}
-                    className="text-sm font-semibold text-right px-2 py-1.5 rounded-lg transition-colors duration-150 flex-1 truncate"
-                    style={{ color: T.ink }}
+                    onClick={() => onOpenQr(m.match_token)}
+                    className="mt-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+                    style={{ background: T.gold, color: T.ink }}
                   >
-                    {teamsById[m.team1_id]?.name}
-                  </button>
-                  <span className="text-xs flex-shrink-0" style={{ color: T.inkDim }}>
-                    vs
-                  </span>
-                  <button
-                    onClick={() => onDeclareWinner(m, m.team2_id)}
-                    className="text-sm font-semibold text-left px-2 py-1.5 rounded-lg transition-colors duration-150 flex-1 truncate"
-                    style={{ color: T.ink }}
-                  >
-                    {teamsById[m.team2_id]?.name}
+                    📱 Ver QR
                   </button>
                 </div>
-                <button
-                  onClick={() => onOpenQr(m.match_token)}
-                  className="mt-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
-                  style={{ background: T.gold, color: T.ink }}
-                >
-                  📱 Ver QR
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
       {jugados.length > 0 && (
         <>
-          <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
-            Ya jugados ({jugados.length})
-          </h2>
+          <button
+            onClick={() => setAbiertoJugados((v) => !v)}
+            className="w-full flex items-center justify-between mb-3"
+          >
+            <h2 className="font-bold text-sm" style={{ color: T.gold }}>
+              Ya jugados ({jugados.length})
+            </h2>
+            <span className="text-xs" style={{ color: T.gold }}>
+              {abiertoJugados ? "▲" : "▼"}
+            </span>
+          </button>
+          {abiertoJugados && (
           <div className="flex flex-col gap-1.5">
             {jugados.map((m) => (
               <div
@@ -1004,6 +1042,7 @@ function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
               </div>
             ))}
           </div>
+          )}
         </>
       )}
     </div>
