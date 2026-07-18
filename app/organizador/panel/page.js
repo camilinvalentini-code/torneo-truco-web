@@ -18,6 +18,26 @@ export default function PanelOrganizador() {
   const [claveNueva, setClaveNueva] = useState("");
   const [claveMsg, setClaveMsg] = useState("");
   const [claveLoading, setClaveLoading] = useState(false);
+  const [slugNuevo, setSlugNuevo] = useState("");
+  const [slugMsg, setSlugMsg] = useState("");
+  const [slugLoading, setSlugLoading] = useState(false);
+
+  async function guardarSlug() {
+    const limpio = slugNuevo.trim().toLowerCase();
+    if (!/^[a-z0-9-]{3,30}$/.test(limpio)) {
+      setSlugMsg("Solo letras minúsculas, números y guiones, entre 3 y 30 caracteres.");
+      return;
+    }
+    setSlugLoading(true);
+    setSlugMsg("");
+    const { error } = await supabase.rpc("actualizar_mi_slug", { nuevo_slug: limpio });
+    setSlugLoading(false);
+    if (error) {
+      setSlugMsg(error.message?.includes("duplicate") ? "Ese link ya lo usa otro organizador, probá otro." : "No se pudo guardar. Probá de nuevo.");
+      return;
+    }
+    setSlugMsg(`Listo — torneotruco.com.ar/t/${limpio}`);
+  }
 
   async function guardarClave() {
     if (claveNueva.trim().length < 6) {
@@ -57,6 +77,7 @@ export default function PanelOrganizador() {
   useEffect(() => {
     if (!authLoading && !session) router.push("/organizador/acceso");
     if (!authLoading && profile && profile.status !== "aprobado") router.push("/organizador/pendiente");
+    if (profile?.slug) setSlugNuevo((prev) => prev || profile.slug);
   }, [authLoading, session, profile, router]);
 
   useEffect(() => {
@@ -70,7 +91,43 @@ export default function PanelOrganizador() {
       </div>
     );
   }
-  if (!session || !profile || profile.status !== "aprobado") return null;
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: T.bg }}>
+        <div className="text-center max-w-sm">
+          <p className="text-sm mb-4" style={{ color: T.ink }}>
+            No pudimos confirmar tu sesión. Puede ser que el link ya se haya usado, o que haya pasado mucho tiempo
+            desde que lo pediste.
+          </p>
+          <Link
+            href="/organizador/acceso"
+            className="inline-block px-5 py-2.5 rounded-2xl font-bold text-sm"
+            style={{ background: T.gold, color: T.ink }}
+          >
+            Pedir el link de nuevo
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  if (!profile || profile.status !== "aprobado") {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: T.bg }}>
+        <div className="text-center max-w-sm">
+          <p className="text-sm mb-4" style={{ color: T.ink }}>
+            Tu cuenta todavía está en revisión.
+          </p>
+          <Link
+            href="/organizador/pendiente"
+            className="inline-block px-5 py-2.5 rounded-2xl font-bold text-sm"
+            style={{ background: T.gold, color: T.ink }}
+          >
+            Ver estado de mi cuenta
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ background: T.bg }}>
@@ -139,16 +196,49 @@ export default function PanelOrganizador() {
           )}
         </div>
 
-        <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
-          Tus torneos ({misTorneos.length})
-        </h2>
-        <div className="flex flex-col gap-2 mb-8">
-          {misTorneos.length === 0 && (
-            <p className="text-sm" style={{ color: T.inkDim }}>
-              Todavía no creaste ningún torneo.
+        <div className="rounded-2xl p-4 mb-8 border" style={{ background: T.panel, borderColor: T.line }}>
+          <h2 className="font-bold mb-1 text-sm" style={{ color: T.gold }}>
+            🔗 Tu link corto
+          </h2>
+          <p className="text-xs mb-3" style={{ color: T.inkDim }}>
+            Elegí un link fijo y fácil de compartir (ej: torneotruco.com.ar/t/vidonbar). Siempre va a mostrar tu
+            torneo más reciente — cuando crees uno nuevo, se actualiza solo, sin cambiar el link.
+          </p>
+          <div className="flex gap-2">
+            <div
+              className="flex-1 flex items-center px-3 py-2 rounded-xl text-sm"
+              style={{ background: T.bg, color: T.inkDim, border: `1px solid ${T.line}` }}
+            >
+              <span className="truncate">torneotruco.com.ar/t/</span>
+              <input
+                value={slugNuevo}
+                onChange={(e) => setSlugNuevo(e.target.value.toLowerCase())}
+                placeholder="tubar"
+                className="flex-1 min-w-0 bg-transparent outline-none"
+                style={{ color: T.ink }}
+              />
+            </div>
+            <button
+              onClick={guardarSlug}
+              disabled={slugLoading}
+              className="px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-60"
+              style={{ background: T.gold, color: T.ink }}
+            >
+              {slugLoading ? "..." : "Guardar"}
+            </button>
+          </div>
+          {slugMsg && (
+            <p className="text-xs mt-2" style={{ color: T.goldBright }}>
+              {slugMsg}
             </p>
           )}
-          {misTorneos.map((t) => (
+        </div>
+
+        {(() => {
+          const enVivo = misTorneos.filter((t) => t.started && !t.champion_id);
+          const pendientes = misTorneos.filter((t) => !t.started);
+          const finalizados = misTorneos.filter((t) => !!t.champion_id);
+          const Fila = (t) => (
             <Link
               key={t.id}
               href={`/torneo/${t.id}/admin`}
@@ -156,10 +246,50 @@ export default function PanelOrganizador() {
               style={{ background: T.panel, color: T.ink, border: `1px solid ${T.line}` }}
             >
               🎴 {t.nombre} <span style={{ color: T.inkDim, fontWeight: "normal" }}>({t.categoria} · {t.fecha})</span>
+              {t.encargado && <span style={{ color: T.inkDim, fontWeight: "normal" }}> · {t.encargado}</span>}
               {t.champion_id && <span className="ml-2">🏆</span>}
             </Link>
-          ))}
-        </div>
+          );
+          return (
+            <>
+              <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
+                🔴 En vivo ({enVivo.length})
+              </h2>
+              <div className="flex flex-col gap-2 mb-6">
+                {enVivo.length === 0 && (
+                  <p className="text-sm" style={{ color: T.inkDim }}>
+                    Ninguno corriendo ahora.
+                  </p>
+                )}
+                {enVivo.map(Fila)}
+              </div>
+
+              <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
+                🕓 Pendientes ({pendientes.length})
+              </h2>
+              <div className="flex flex-col gap-2 mb-6">
+                {pendientes.length === 0 && (
+                  <p className="text-sm" style={{ color: T.inkDim }}>
+                    No hay ninguno esperando el sorteo.
+                  </p>
+                )}
+                {pendientes.map(Fila)}
+              </div>
+
+              <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
+                ✅ Finalizados ({finalizados.length})
+              </h2>
+              <div className="flex flex-col gap-2 mb-8">
+                {finalizados.length === 0 && (
+                  <p className="text-sm" style={{ color: T.inkDim }}>
+                    Todavía ninguno terminado.
+                  </p>
+                )}
+                {finalizados.map(Fila)}
+              </div>
+            </>
+          );
+        })()}
 
         <h2 className="font-bold mb-3 text-sm" style={{ color: T.gold }}>
           Otros torneos en vivo (solo podés mirar)

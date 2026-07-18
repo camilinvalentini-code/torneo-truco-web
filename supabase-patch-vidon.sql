@@ -75,6 +75,12 @@ set search_path = public, pg_temp as $$
 declare
   destino matches%rowtype;
 begin
+  if auth.uid() is not null and not (
+    public.is_admin() or exists (select 1 from tournaments t where t.id = p_tournament_id and t.organizador_id = auth.uid())
+  ) then
+    raise exception 'no autorizado';
+  end if;
+
   select * into destino from matches
   where tournament_id = p_tournament_id and bracket = 'main' and round_index = 0
     and id <> p_match_id_recien_jugado
@@ -93,6 +99,9 @@ begin
   end if;
 end;
 $$;
+revoke execute on function public.colocar_perdedor_vidon(uuid, uuid, uuid) from anon;
+revoke execute on function public.colocar_perdedor_vidon(uuid, uuid, uuid) from public;
+grant execute on function public.colocar_perdedor_vidon(uuid, uuid, uuid) to authenticated;
 
 -- 4) El organizador puede sacar a un equipo de un casillero ya colocado
 --    en la ronda 0 (modo Vidon) si todavía no jugó ese partido puntual,

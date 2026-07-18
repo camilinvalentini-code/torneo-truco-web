@@ -35,6 +35,7 @@ export default function AdminPage({ params }) {
   const [infoNombre, setInfoNombre] = useState("");
   const [infoUbicacion, setInfoUbicacion] = useState("");
   const [infoFecha, setInfoFecha] = useState("");
+  const [infoEncargado, setInfoEncargado] = useState("");
   const [vista, setVista] = useState("mesas"); // "mesas" | "cuadro"
   const [simulando, setSimulando] = useState(false);
   const [mostrarEquipos, setMostrarEquipos] = useState(false);
@@ -77,6 +78,7 @@ export default function AdminPage({ params }) {
     setInfoNombre((prev) => prev || t.nombre || "");
     setInfoUbicacion((prev) => prev || t.ubicacion || "");
     setInfoFecha((prev) => prev || t.fecha || "");
+    setInfoEncargado((prev) => prev || t.encargado || "");
   }, [id]);
 
   useEffect(() => {
@@ -264,7 +266,12 @@ export default function AdminPage({ params }) {
     setError("");
     await supabase
       .from("tournaments")
-      .update({ nombre: infoNombre.trim(), ubicacion: infoUbicacion.trim(), fecha: infoFecha.trim() })
+      .update({
+        nombre: infoNombre.trim(),
+        ubicacion: infoUbicacion.trim(),
+        fecha: infoFecha.trim(),
+        encargado: infoEncargado.trim() || null,
+      })
       .eq("id", id);
     setEditandoInfo(false);
     load();
@@ -413,12 +420,14 @@ export default function AdminPage({ params }) {
       .filter((m) => m.team1_id) // en modo Vidon, los casilleros del todo vacíos no se anuncian
       .map((m) => {
         const n1 = teamsById[m.team1_id]?.name || "?";
-        if (m.bye) return `${n1} → LIBRE`;
-        if (!m.team2_id) return `${n1} → espera rival`;
+        if (m.bye) return `*${n1}* → LIBRE`;
+        if (!m.team2_id) return `*${n1}* → espera rival`;
         const n2 = teamsById[m.team2_id]?.name || "?";
-        return `${n1} vs ${n2}`;
+        return `*${n1}* vs *${n2}*`;
       });
-    return `🎴 ${tournament.nombre} — cruces\n\n${lineas.join("\n")}\n\n${publicUrl}`;
+    const link = profile?.slug ? `torneotruco.com.ar/t/${profile.slug}` : publicUrl;
+    const fecha = tournament.fecha ? ` — ${tournament.fecha}` : "";
+    return `⚔️ *${tournament.nombre}*${fecha}\n\n${lineas.join("\n")}\n\n${link}`;
   }
 
   async function compartirCruces() {
@@ -460,10 +469,11 @@ export default function AdminPage({ params }) {
           <SuitIcon suit="copa" size={20} />
         </div>
         <h1 className="text-2xl font-black text-center" style={{ color: T.ink, fontFamily: "Georgia, serif" }}>
-          {tournament.nombre || "Torneo de Truco"} · Panel del Organizador
+          {tournament.nombre || "Torneo de Truco"} · panel del organizador
         </h1>
         <p className="text-center text-xs mb-1" style={{ color: T.inkDim }}>
           {[tournament.ubicacion, tournament.fecha, tournament.categoria].filter(Boolean).join(" · ")}
+          {tournament.encargado && <> · Organiza: {tournament.encargado}</>}
           {" · "}
           <button onClick={() => setEditandoInfo((v) => !v)} className="underline" style={{ color: T.inkDim }}>
             ✏️ Editar datos
@@ -494,6 +504,13 @@ export default function AdminPage({ params }) {
                 value={infoFecha}
                 onChange={(e) => setInfoFecha(e.target.value)}
                 placeholder="Fecha"
+                className="px-3 py-2 rounded-xl text-sm"
+                style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+              />
+              <input
+                value={infoEncargado}
+                onChange={(e) => setInfoEncargado(e.target.value)}
+                placeholder="¿Quién organiza? (opcional)"
                 className="px-3 py-2 rounded-xl text-sm"
                 style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
               />
@@ -623,10 +640,21 @@ export default function AdminPage({ params }) {
 
               {teams.length > 0 && (
                 <div className="rounded-2xl p-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
-                  <h2 className="font-bold mb-3" style={{ color: T.gold }}>
-                    Equipos anotados ({teams.length})
-                  </h2>
-                  <TeamList teams={teams} editable onTogglePaid={togglePaid} onRemove={removeTeam} />
+                  <button
+                    onClick={() => setMostrarEquipos((v) => !v)}
+                    className="w-full flex items-center justify-between font-bold"
+                    style={{ color: T.gold }}
+                  >
+                    <span>Equipos anotados ({teams.length})</span>
+                    <span className="text-xs" style={{ color: T.inkDim }}>
+                      {mostrarEquipos ? "ocultar ▲" : "mostrar ▼"}
+                    </span>
+                  </button>
+                  {mostrarEquipos && (
+                    <div className="mt-3">
+                      <TeamList teams={teams} editable onTogglePaid={togglePaid} onRemove={removeTeam} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

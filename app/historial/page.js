@@ -58,6 +58,7 @@ export default function HistorialPage() {
                   {t.nombre}
                   {t.ubicacion && ` — ${t.ubicacion}`}
                   {t.fecha && ` — ${t.fecha}`}
+                  {t.encargado && ` — organizó ${t.encargado}`}
                 </div>
               </div>
             ))}

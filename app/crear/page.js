@@ -27,6 +27,7 @@ export default function CrearTorneo() {
   const [repechaje, setRepechaje] = useState(false);
   const [puntosMax, setPuntosMax] = useState(30);
   const [modo, setModo] = useState("directa");
+  const [encargado, setEncargado] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -93,6 +94,7 @@ export default function CrearTorneo() {
         repechaje,
         puntos_max: puntosMax,
         modo,
+        encargado: encargado.trim() || null,
         organizador_id: session.user.id,
       })
       .select()
@@ -223,6 +225,14 @@ export default function CrearTorneo() {
               value={lugar}
               onChange={(e) => setLugar(e.target.value)}
               placeholder="Lugar*"
+              className="px-3 py-2 rounded-xl text-sm"
+              style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+            />
+
+            <input
+              value={encargado}
+              onChange={(e) => setEncargado(e.target.value)}
+              placeholder="¿Quién organiza? (opcional)"
               className="px-3 py-2 rounded-xl text-sm"
               style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
             />
