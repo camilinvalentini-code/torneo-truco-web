@@ -33,7 +33,7 @@ export default function Home() {
           Armá el cuadro, sorteá, y que cada mesa cargue sus propios puntos desde el celular.
         </p>
 
-        {!loading && session && profile && (
+        {!loading && session && (
           <Link
             href={panelHref}
             className="block text-center py-4 rounded-2xl font-black text-lg mb-3 transition-all duration-200 hover:scale-105 active:scale-95"
