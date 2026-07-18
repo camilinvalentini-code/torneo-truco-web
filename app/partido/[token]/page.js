@@ -93,7 +93,7 @@ export default function PartidoPage({ params }) {
   }
 
   const nameA = teams[match.team1_id]?.name || "Equipo A";
-  const nameB = teams[match.team2_id]?.name || "Equipo B";
+  const nameB = match.team2_id ? (teams[match.team2_id]?.name || "Equipo B") : "— esperando rival —";
   const winnerName = match.winner_id ? teams[match.winner_id]?.name : null;
 
   return (

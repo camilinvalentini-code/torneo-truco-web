@@ -13,8 +13,8 @@ const CLAVE = "torneotruco:anotador-libre";
 export default function AnotadorLibre() {
   const { T } = useTheme();
   const { layout, marks, setLayout, setMarks } = useSkin();
-  const [nameA, setNameA] = useState("Nosotros");
-  const [nameB, setNameB] = useState("Ellos");
+  const [nameA, setNameA] = useState("Equipo A");
+  const [nameB, setNameB] = useState("Equipo B");
   const [puntosMax, setPuntosMax] = useState(30);
   const [scoreA, setScoreA] = useState(0);
   const [scoreB, setScoreB] = useState(0);
@@ -27,8 +27,8 @@ export default function AnotadorLibre() {
       const guardado = window.localStorage.getItem(CLAVE);
       if (guardado) {
         const d = JSON.parse(guardado);
-        setNameA(d.nameA || "Nosotros");
-        setNameB(d.nameB || "Ellos");
+        setNameA(d.nameA || "Equipo A");
+        setNameB(d.nameB || "Equipo B");
         setPuntosMax(d.puntosMax || 30);
         setScoreA(d.scoreA || 0);
         setScoreB(d.scoreB || 0);

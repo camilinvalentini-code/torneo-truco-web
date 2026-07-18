@@ -26,12 +26,14 @@ export default function CrearTorneo() {
   const [categoria, setCategoria] = useState("2v2");
   const [repechaje, setRepechaje] = useState(false);
   const [puntosMax, setPuntosMax] = useState(30);
+  const [modo, setModo] = useState("directa");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [testCantidad, setTestCantidad] = useState(8);
   const [testCategoria, setTestCategoria] = useState("2v2");
   const [testRepechaje, setTestRepechaje] = useState(true);
+  const [testModo, setTestModo] = useState("directa");
   const [testLoading, setTestLoading] = useState(false);
 
   const NOMBRES_PRUEBA = [
@@ -90,6 +92,7 @@ export default function CrearTorneo() {
         categoria,
         repechaje,
         puntos_max: puntosMax,
+        modo,
         organizador_id: session.user.id,
       })
       .select()
@@ -120,6 +123,7 @@ export default function CrearTorneo() {
         fecha: hoy(),
         categoria: testCategoria,
         repechaje: testRepechaje,
+        modo: testModo,
         organizador_id: session.user.id,
       })
       .select()
@@ -242,10 +246,39 @@ export default function CrearTorneo() {
                 </button>
               ))}
             </div>
-            <label className="flex items-center gap-2 text-sm mt-2" style={{ color: T.ink }}>
-              <input type="checkbox" checked={repechaje} onChange={(e) => setRepechaje(e.target.checked)} />
-              Con repechaje
-            </label>
+            <div className="mt-2">
+              <span className="text-xs" style={{ color: T.inkDim }}>
+                Formato:
+              </span>
+              <div className="flex rounded-xl overflow-hidden border mt-1" style={{ borderColor: T.gold }}>
+                <button
+                  onClick={() => setModo("directa")}
+                  className="flex-1 py-2 text-xs font-bold"
+                  style={{ background: modo === "directa" ? T.gold : "transparent", color: modo === "directa" ? T.ink : T.inkDim }}
+                >
+                  Eliminación directa
+                </button>
+                <button
+                  onClick={() => setModo("vidon")}
+                  className="flex-1 py-2 text-xs font-bold"
+                  style={{ background: modo === "vidon" ? T.gold : "transparent", color: modo === "vidon" ? T.ink : T.inkDim }}
+                >
+                  Sistema Vidon Bar
+                </button>
+              </div>
+              <p className="text-[11px] mt-1" style={{ color: T.inkDim }}>
+                {modo === "vidon"
+                  ? "Los que pierden en la primera ronda van rellenando los lugares vacíos del cuadro hasta completarlo, sin llave de repechaje aparte."
+                  : "Los que pierden en la primera ronda arman su propia llave de repechaje, aparte del cuadro principal."}
+              </p>
+            </div>
+
+            {modo === "directa" && (
+              <label className="flex items-center gap-2 text-sm mt-2" style={{ color: T.ink }}>
+                <input type="checkbox" checked={repechaje} onChange={(e) => setRepechaje(e.target.checked)} />
+                Con repechaje
+              </label>
+            )}
 
             <div className="mt-2">
               <span className="text-xs" style={{ color: T.inkDim }}>
@@ -323,6 +356,21 @@ export default function CrearTorneo() {
               <input type="checkbox" checked={testRepechaje} onChange={(e) => setTestRepechaje(e.target.checked)} />
               Con repechaje
             </label>
+            <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: T.redDim }}>
+              {[
+                ["directa", "Directa"],
+                ["vidon", "Vidon Bar"],
+              ].map(([v, label]) => (
+                <button
+                  key={v}
+                  onClick={() => setTestModo(v)}
+                  className="flex-1 py-2 text-xs font-bold"
+                  style={{ background: testModo === v ? T.redDim : "transparent", color: testModo === v ? "#FFFFFF" : T.inkDim }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <button
               onClick={generarTorneoPrueba}
               disabled={testLoading}
