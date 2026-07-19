@@ -124,6 +124,7 @@ export default function CrearTorneo() {
         ubicacion: "Prueba, Córdoba",
         fecha: hoy(),
         categoria: testCategoria,
+        es_prueba: true,
         repechaje: testRepechaje,
         modo: testModo,
         organizador_id: session.user.id,

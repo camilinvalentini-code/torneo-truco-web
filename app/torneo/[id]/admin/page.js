@@ -40,6 +40,7 @@ export default function AdminPage({ params }) {
   const [vista, setVista] = useState("mesas"); // "mesas" | "cuadro"
   const [simulando, setSimulando] = useState(false);
   const [mostrarEquipos, setMostrarEquipos] = useState(false);
+  const [mostrarQuitarEquipo, setMostrarQuitarEquipo] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
@@ -785,33 +786,46 @@ export default function AdminPage({ params }) {
 
             {sorteoSinJugar() && (
               <div className="rounded-2xl p-4 mb-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
-                <p className="text-xs mb-2" style={{ color: T.inkDim }}>
-                  ¿Algún equipo no va a jugar (perdió un desempate, se bajó, etc.)? Sacalo — el cuadro se rearma
-                  solo con los que queden.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {teams.map((t) => (
-                    <span
-                      key={t.id}
-                      className="text-xs pl-3 pr-1.5 py-1.5 rounded-full font-semibold flex items-center gap-1.5"
-                      style={{ background: T.panelLight, color: T.ink }}
-                    >
-                      {t.name}
-                      <button
-                        onClick={() => quitarEquipoDelTorneo(t.id)}
-                        className="w-5 h-5 rounded-full flex items-center justify-center"
-                        style={{ background: T.redDim, color: "#FFFFFF" }}
-                        title="Sacar del torneo"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
-                </div>
+                <button
+                  onClick={() => setMostrarQuitarEquipo((v) => !v)}
+                  className="w-full flex items-center justify-between"
+                  style={{ color: T.gold }}
+                >
+                  <span className="font-bold text-sm">¿Algún equipo no juega más?</span>
+                  <span className="text-xs" style={{ color: T.inkDim }}>
+                    {mostrarQuitarEquipo ? "ocultar ▲" : "mostrar ▼"}
+                  </span>
+                </button>
+                {mostrarQuitarEquipo && (
+                  <>
+                    <p className="text-xs mb-2 mt-2" style={{ color: T.inkDim }}>
+                      ¿Perdió un desempate, se bajó, etc.? Sacalo — el cuadro se rearma solo con los que queden.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {teams.map((t) => (
+                        <span
+                          key={t.id}
+                          className="text-xs pl-3 pr-1.5 py-1.5 rounded-full font-semibold flex items-center gap-1.5"
+                          style={{ background: T.panelLight, color: T.ink }}
+                        >
+                          {t.name}
+                          <button
+                            onClick={() => quitarEquipoDelTorneo(t.id)}
+                            className="w-5 h-5 rounded-full flex items-center justify-center"
+                            style={{ background: T.redDim, color: "#FFFFFF" }}
+                            title="Sacar del torneo"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
-            {!tournament.champion_id && (
+            {tournament.es_prueba && !tournament.champion_id && (
               <button
                 onClick={simularTorneoCompleto}
                 disabled={simulando}
