@@ -427,70 +427,59 @@ export default function AdminPage({ params }) {
   const repMatches = matches.filter((m) => m.bracket === "repechaje");
   const publicUrl = `${origin}/torneo/${id}`;
 
-  function rondaActualIndex() {
+  function crucesPendientes() {
+    // Un cruce está pendiente de avisar si: es un partido nuevo recién
+    // definido (avisado=false), o si es un "espera rival" recién armado
+    // (avisado_espera=false). Cuando a un "espera rival" ya avisado le
+    // aparece el rival, vuelve a contar como pendiente (avisado sigue
+    // en false hasta que se avise ESE cruce ya completo).
+    const pendientes = mainMatches.filter((m) => {
+      if (!m.team1_id) return false; // nada para avisar todavía
+      if (m.bye || m.team2_id) return !m.avisado; // cruce definido (o libre)
+      return !m.avisado_espera; // solo espera rival
+    });
+    return pendientes.sort((a, b) => a.round_index - b.round_index || a.match_index - b.match_index);
+  }
+
+  function textoCrucesPendientes() {
+    const pendientes = crucesPendientes();
     const porRonda = {};
-    mainMatches.forEach((m) => {
+    pendientes.forEach((m) => {
       porRonda[m.round_index] = porRonda[m.round_index] || [];
       porRonda[m.round_index].push(m);
     });
-    const indices = Object.keys(porRonda).map(Number).sort((a, b) => a - b);
-    for (const idx of indices) {
-      const todosListos = porRonda[idx].every((m) => m.bye || m.winner_id);
-      if (!todosListos) return idx;
-    }
-    return indices[indices.length - 1] ?? 0; // torneo ya terminado: mostrá la última
-  }
-
-  function textoCruces() {
-    const idx = rondaActualIndex();
-    const rondaMatches = mainMatches.filter((m) => m.round_index === idx).sort((a, b) => a.match_index - b.match_index);
-    const nombreRonda = roundLabel(rondaMatches.length);
-    const conTeam1 = rondaMatches.filter((m) => m.team1_id);
-    const lineas = conTeam1.map((m) => {
-      const n1 = teamsById[m.team1_id]?.name || "?";
-      if (m.bye) return `*${n1}* → LIBRE`;
-      if (!m.team2_id) return `*${n1}* → espera rival`;
-      const n2 = teamsById[m.team2_id]?.name || "?";
-      return `*${n1}* vs *${n2}*`;
-    });
-    const link = publicUrl;
+    const bloques = Object.keys(porRonda)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map((idx) => {
+        const totalRonda = mainMatches.filter((m) => m.round_index === idx).length;
+        const nombreRonda = roundLabel(totalRonda);
+        const lineas = porRonda[idx].map((m) => {
+          const n1 = teamsById[m.team1_id]?.name || "?";
+          if (m.bye) return `*${n1}* → LIBRE`;
+          if (!m.team2_id) return `*${n1}* → espera rival`;
+          const n2 = teamsById[m.team2_id]?.name || "?";
+          return `*${n1}* vs *${n2}*`;
+        });
+        return `📋 ${nombreRonda}\n${lineas.join("\n")}`;
+      });
     const fecha = tournament.fecha ? ` — ${tournament.fecha}` : "";
-    const texto = `⚔️ *${tournament.nombre}*${fecha}\n📋 ${nombreRonda}\n\n${lineas.join("\n")}\n\n${link}`;
-    return { texto, ids: conTeam1.map((m) => m.id) };
+    const texto = `⚔️ *${tournament.nombre}*${fecha}\n\n${bloques.join("\n\n")}\n\n${publicUrl}`;
+    return { texto, matches: pendientes };
   }
 
-  async function compartirCruces() {
-    const { texto, ids } = textoCruces();
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: texto });
-      } catch (e) {
-        return; // canceló, no marcamos nada como avisado
-      }
-    } else {
-      window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
-    }
-    await supabase.from("matches").update({ avisado: true }).in("id", ids);
+  async function marcarAvisados(matches) {
+    const idsDefinidos = matches.filter((m) => m.bye || m.team2_id).map((m) => m.id);
+    const idsEspera = matches.filter((m) => !m.bye && !m.team2_id).map((m) => m.id);
+    if (idsDefinidos.length > 0) await supabase.from("matches").update({ avisado: true }).in("id", idsDefinidos);
+    if (idsEspera.length > 0) await supabase.from("matches").update({ avisado_espera: true }).in("id", idsEspera);
     load();
   }
 
-  function textoNuevosCruces() {
-    const nuevos = mainMatches
-      .filter((m) => !m.avisado && m.team1_id && m.team2_id && !m.bye)
-      .sort((a, b) => a.round_index - b.round_index || a.match_index - b.match_index);
-    const lineas = nuevos.map((m) => {
-      const n1 = teamsById[m.team1_id]?.name || "?";
-      const n2 = teamsById[m.team2_id]?.name || "?";
-      return `*${n1}* vs *${n2}*`;
-    });
-    const link = publicUrl;
-    return { texto: `⚔️ *${tournament.nombre}* — nuevos cruces\n\n${lineas.join("\n")}\n\n${link}`, ids: nuevos.map((m) => m.id) };
-  }
-
-  async function compartirNuevosCruces() {
-    const { texto, ids } = textoNuevosCruces();
-    if (ids.length === 0) {
-      alert("No hay cruces nuevos todavía — todos los que ya tienen los dos equipos definidos ya fueron avisados.");
+  async function compartirCruces() {
+    const { texto, matches } = textoCrucesPendientes();
+    if (matches.length === 0) {
+      alert("No hay cruces nuevos todavía.");
       return;
     }
     if (navigator.share) {
@@ -502,14 +491,13 @@ export default function AdminPage({ params }) {
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
     }
-    await supabase.from("matches").update({ avisado: true }).in("id", ids);
-    load();
+    await marcarAvisados(matches);
   }
 
-  async function copiarNuevosCruces() {
-    const { texto, ids } = textoNuevosCruces();
-    if (ids.length === 0) {
-      alert("No hay cruces nuevos todavía — todos los que ya tienen los dos equipos definidos ya fueron avisados.");
+  async function copiarCruces() {
+    const { texto, matches } = textoCrucesPendientes();
+    if (matches.length === 0) {
+      alert("No hay cruces nuevos todavía.");
       return;
     }
     try {
@@ -518,17 +506,7 @@ export default function AdminPage({ params }) {
       alert("No se pudo copiar. Probá el botón de compartir.");
       return;
     }
-    await supabase.from("matches").update({ avisado: true }).in("id", ids);
-    load();
-  }
-
-  async function copiarCruces() {
-    try {
-      await navigator.clipboard.writeText(textoCruces().texto);
-      alert("Copiado — pegalo donde quieras.");
-    } catch (e) {
-      alert("No se pudo copiar. Probá el botón de compartir.");
-    }
+    await marcarAvisados(matches);
   }
 
   return (
@@ -793,44 +771,27 @@ export default function AdminPage({ params }) {
               )}
             </div>
 
-            <div className="flex gap-2 mb-2">
-              <button
-                onClick={compartirCruces}
-                className="flex-1 py-2.5 rounded-2xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
-                style={{ background: "#81C784", color: "#1F2937" }}
-              >
-                📲 Compartir cruces
-              </button>
-              <button
-                onClick={copiarCruces}
-                className="px-4 py-2.5 rounded-2xl font-bold text-sm"
-                style={{ background: T.panelLight, color: T.ink, border: `1px solid ${T.line}` }}
-              >
-                📋 Copiar
-              </button>
-            </div>
-
-            {tournament.modo === "vidon" && (() => {
-              const hayNuevos = mainMatches.some((m) => !m.avisado && m.team1_id && m.team2_id && !m.bye);
+            {(() => {
+              const hayPendientes = crucesPendientes().length > 0;
               return (
                 <div className="flex gap-2 mb-4">
                   <button
-                    onClick={compartirNuevosCruces}
+                    onClick={compartirCruces}
                     className="flex-1 py-2.5 rounded-2xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ background: T.panelLight, color: T.ink, border: `1px solid ${T.gold}` }}
+                    style={{ background: hayPendientes ? "#81C784" : T.panelLight, color: hayPendientes ? "#1F2937" : T.inkDim }}
                   >
-                    🆕 {hayNuevos ? "Compartir nuevos cruces" : "Sin cruces nuevos"}
+                    📲 {hayPendientes ? "Compartir cruces" : "Sin cruces nuevos"}
                   </button>
                   <button
-                    onClick={copiarNuevosCruces}
+                    onClick={copiarCruces}
                     className="px-4 py-2.5 rounded-2xl font-bold text-sm"
                     style={{
-                      background: hayNuevos ? T.panelLight : T.bg,
-                      color: hayNuevos ? T.ink : T.inkDim,
+                      background: hayPendientes ? T.panelLight : T.bg,
+                      color: hayPendientes ? T.ink : T.inkDim,
                       border: `1px solid ${T.line}`,
                     }}
                   >
-                    {hayNuevos ? "📋 Copiar" : "✓ Ya copiado"}
+                    {hayPendientes ? "📋 Copiar" : "✓ Ya copiado"}
                   </button>
                 </div>
               );
