@@ -215,44 +215,6 @@ export default function PanelOrganizador() {
           )}
         </div>
 
-        <div className="rounded-2xl p-4 mb-8 border" style={{ background: T.panel, borderColor: T.line }}>
-          <h2 className="font-bold mb-1 text-sm" style={{ color: T.gold }}>
-            🔗 Tu link corto
-          </h2>
-          <p className="text-xs mb-3" style={{ color: T.inkDim }}>
-            Elegí un link fijo y fácil de compartir (ej: torneotruco.com.ar/t/vidonbar). Siempre va a mostrar tu
-            torneo más reciente — cuando crees uno nuevo, se actualiza solo, sin cambiar el link.
-          </p>
-          <div className="flex gap-2">
-            <div
-              className="flex-1 flex items-center px-3 py-2 rounded-xl text-sm"
-              style={{ background: T.bg, color: T.inkDim, border: `1px solid ${T.line}` }}
-            >
-              <span className="truncate">torneotruco.com.ar/t/</span>
-              <input
-                value={slugNuevo}
-                onChange={(e) => setSlugNuevo(e.target.value.toLowerCase())}
-                placeholder="tubar"
-                className="flex-1 min-w-0 bg-transparent outline-none"
-                style={{ color: T.ink }}
-              />
-            </div>
-            <button
-              onClick={guardarSlug}
-              disabled={slugLoading}
-              className="px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-60"
-              style={{ background: T.gold, color: T.ink }}
-            >
-              {slugLoading ? "..." : "Guardar"}
-            </button>
-          </div>
-          {slugMsg && (
-            <p className="text-xs mt-2" style={{ color: T.goldBright }}>
-              {slugMsg}
-            </p>
-          )}
-        </div>
-
         {(() => {
           const enVivo = misTorneos.filter((t) => t.started && !t.champion_id && !t.cerrado);
           const pendientes = misTorneos.filter((t) => !t.started);
