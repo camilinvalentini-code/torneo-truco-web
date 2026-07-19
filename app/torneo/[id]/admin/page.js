@@ -433,37 +433,70 @@ export default function AdminPage({ params }) {
     const idx = rondaActualIndex();
     const rondaMatches = mainMatches.filter((m) => m.round_index === idx).sort((a, b) => a.match_index - b.match_index);
     const nombreRonda = roundLabel(rondaMatches.length);
-    const lineas = rondaMatches
-      .filter((m) => m.team1_id) // en modo Vidon, los casilleros del todo vacíos no se anuncian
-      .map((m) => {
-        const n1 = teamsById[m.team1_id]?.name || "?";
-        if (m.bye) return `*${n1}* → LIBRE`;
-        if (!m.team2_id) return `*${n1}* → espera rival`;
-        const n2 = teamsById[m.team2_id]?.name || "?";
-        return `*${n1}* vs *${n2}*`;
-      });
+    const conTeam1 = rondaMatches.filter((m) => m.team1_id);
+    const lineas = conTeam1.map((m) => {
+      const n1 = teamsById[m.team1_id]?.name || "?";
+      if (m.bye) return `*${n1}* → LIBRE`;
+      if (!m.team2_id) return `*${n1}* → espera rival`;
+      const n2 = teamsById[m.team2_id]?.name || "?";
+      return `*${n1}* vs *${n2}*`;
+    });
     const link = profile?.slug ? `torneotruco.com.ar/t/${profile.slug}` : publicUrl;
     const fecha = tournament.fecha ? ` — ${tournament.fecha}` : "";
-    return `⚔️ *${tournament.nombre}*${fecha}\n📋 ${nombreRonda}\n\n${lineas.join("\n")}\n\n${link}`;
+    const texto = `⚔️ *${tournament.nombre}*${fecha}\n📋 ${nombreRonda}\n\n${lineas.join("\n")}\n\n${link}`;
+    return { texto, ids: conTeam1.map((m) => m.id) };
   }
 
   async function compartirCruces() {
-    const texto = textoCruces();
+    const { texto, ids } = textoCruces();
     if (navigator.share) {
       try {
         await navigator.share({ text: texto });
-        return;
       } catch (e) {
-        /* el usuario canceló, no hacemos nada más */
-        return;
+        return; // canceló, no marcamos nada como avisado
       }
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
     }
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
+    await supabase.from("matches").update({ avisado: true }).in("id", ids);
+    load();
+  }
+
+  function textoNuevosCruces() {
+    const nuevos = mainMatches
+      .filter((m) => !m.avisado && m.team1_id && m.team2_id && !m.bye)
+      .sort((a, b) => a.round_index - b.round_index || a.match_index - b.match_index);
+    const lineas = nuevos.map((m) => {
+      const n1 = teamsById[m.team1_id]?.name || "?";
+      const n2 = teamsById[m.team2_id]?.name || "?";
+      return `*${n1}* vs *${n2}*`;
+    });
+    const link = profile?.slug ? `torneotruco.com.ar/t/${profile.slug}` : publicUrl;
+    return { texto: `⚔️ *${tournament.nombre}* — nuevos cruces\n\n${lineas.join("\n")}\n\n${link}`, ids: nuevos.map((m) => m.id) };
+  }
+
+  async function compartirNuevosCruces() {
+    const { texto, ids } = textoNuevosCruces();
+    if (ids.length === 0) {
+      alert("No hay cruces nuevos todavía — todos los que ya tienen los dos equipos definidos ya fueron avisados.");
+      return;
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: texto });
+      } catch (e) {
+        return; // canceló, no marcamos nada como avisado
+      }
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
+    }
+    await supabase.from("matches").update({ avisado: true }).in("id", ids);
+    load();
   }
 
   async function copiarCruces() {
     try {
-      await navigator.clipboard.writeText(textoCruces());
+      await navigator.clipboard.writeText(textoCruces().texto);
       alert("Copiado — pegalo donde quieras.");
     } catch (e) {
       alert("No se pudo copiar. Probá el botón de compartir.");
@@ -713,7 +746,7 @@ export default function AdminPage({ params }) {
               )}
             </div>
 
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-2">
               <button
                 onClick={compartirCruces}
                 className="flex-1 py-2.5 rounded-2xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
@@ -729,6 +762,16 @@ export default function AdminPage({ params }) {
                 📋 Copiar
               </button>
             </div>
+
+            {tournament.modo === "vidon" && (
+              <button
+                onClick={compartirNuevosCruces}
+                className="w-full py-2.5 rounded-2xl font-bold text-sm mb-4 transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{ background: T.panelLight, color: T.ink, border: `1px solid ${T.gold}` }}
+              >
+                🆕 Solo los cruces nuevos
+              </button>
+            )}
 
             {sorteoSinJugar() && (
               <button
