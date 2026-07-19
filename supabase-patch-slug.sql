@@ -37,7 +37,7 @@ begin
   if organizador is null then return null; end if;
 
   select id into torneo_id from tournaments
-  where organizador_id = organizador and started = true and champion_id is null
+  where organizador_id = organizador and started = true and champion_id is null and cerrado = false
   order by created_at desc limit 1;
   if torneo_id is not null then return torneo_id; end if;
 

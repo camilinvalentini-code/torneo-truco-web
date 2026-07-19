@@ -216,6 +216,17 @@ export default function AdminPage({ params }) {
     return ronda0.every((m) => m.bye || (!m.winner_id && m.score_a === 0 && m.score_b === 0));
   }
 
+  async function cerrarTorneo() {
+    if (!window.confirm("¿Cerrar este torneo? Se marca como terminado, aunque no haya un campeón definido. Podés reabrirlo después si te equivocaste.")) return;
+    await supabase.from("tournaments").update({ cerrado: true }).eq("id", id);
+    load();
+  }
+
+  async function reabrirTorneo() {
+    await supabase.from("tournaments").update({ cerrado: false }).eq("id", id);
+    load();
+  }
+
   async function resortear() {
     if (!window.confirm("¿Volver a sortear? Se descarta el cuadro actual y se arma uno nuevo desde cero.")) return;
     setError("");
@@ -521,6 +532,11 @@ export default function AdminPage({ params }) {
         </div>
         <h1 className="text-2xl font-black text-center" style={{ color: T.ink, fontFamily: "Georgia, serif" }}>
           {tournament.nombre || "Torneo de Truco"} · panel del organizador
+          {tournament.cerrado && !tournament.champion_id && (
+            <span className="block text-xs font-bold mt-1" style={{ color: T.redDim }}>
+              🏁 Cerrado sin campeón
+            </span>
+          )}
         </h1>
         <p className="text-center text-xs mb-1" style={{ color: T.inkDim }}>
           {[tournament.ubicacion, tournament.fecha, tournament.categoria].filter(Boolean).join(" · ")}
@@ -530,6 +546,20 @@ export default function AdminPage({ params }) {
             ✏️ Editar datos
           </button>
         </p>
+
+        {!tournament.champion_id && (
+          <p className="text-center text-xs mb-3">
+            {tournament.cerrado ? (
+              <button onClick={reabrirTorneo} className="underline font-bold" style={{ color: T.goldBright }}>
+                ↺ Reabrir torneo
+              </button>
+            ) : (
+              <button onClick={cerrarTorneo} className="underline" style={{ color: T.inkDim }}>
+                🏁 Finalizar torneo (sin terminar de jugar)
+              </button>
+            )}
+          </p>
+        )}
 
         {editandoInfo && (
           <div

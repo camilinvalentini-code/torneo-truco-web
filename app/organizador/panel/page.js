@@ -254,9 +254,9 @@ export default function PanelOrganizador() {
         </div>
 
         {(() => {
-          const enVivo = misTorneos.filter((t) => t.started && !t.champion_id);
+          const enVivo = misTorneos.filter((t) => t.started && !t.champion_id && !t.cerrado);
           const pendientes = misTorneos.filter((t) => !t.started);
-          const finalizados = misTorneos.filter((t) => !!t.champion_id);
+          const finalizados = misTorneos.filter((t) => !!t.champion_id || t.cerrado);
           const Fila = (t) => (
             <Link
               key={t.id}
@@ -267,6 +267,7 @@ export default function PanelOrganizador() {
               🎴 {t.nombre} <span style={{ color: T.inkDim, fontWeight: "normal" }}>({t.categoria} · {t.fecha})</span>
               {t.encargado && <span style={{ color: T.inkDim, fontWeight: "normal" }}> · {t.encargado}</span>}
               {t.champion_id && <span className="ml-2">🏆</span>}
+              {!t.champion_id && t.cerrado && <span className="ml-2">🏁</span>}
             </Link>
           );
           return (
