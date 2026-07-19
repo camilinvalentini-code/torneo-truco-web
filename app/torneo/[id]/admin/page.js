@@ -797,7 +797,7 @@ export default function AdminPage({ params }) {
               <button
                 onClick={compartirCruces}
                 className="flex-1 py-2.5 rounded-2xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
-                style={{ background: "#25D366", color: "#FFFFFF" }}
+                style={{ background: "#81C784", color: "#7E387B" }}
               >
                 📲 Compartir cruces
               </button>
