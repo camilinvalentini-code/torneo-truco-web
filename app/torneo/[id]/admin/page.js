@@ -707,7 +707,7 @@ export default function AdminPage({ params }) {
                           value={jugadorInput}
                           onChange={(e) => buscarJugadores(e.target.value)}
                           onKeyDown={onJugadorKeyDown}
-                          placeholder="Agregar jugador (Enter para sumarlo)"
+                          placeholder="Agregar jugador"
                           className="w-full px-3 py-2 rounded-xl text-sm"
                           style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
                         />
