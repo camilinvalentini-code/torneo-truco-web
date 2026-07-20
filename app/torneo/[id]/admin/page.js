@@ -957,7 +957,7 @@ export default function AdminPage({ params }) {
                 {tournament.modo === "vidon" && (
                   <div className="mt-6 rounded-2xl p-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
                     <h2 className="font-bold mb-2 text-sm" style={{ color: T.gold }}>
-                      Lugares del cuadro ya ocupados (ronda 1)
+                      Lugares del cuadro ya ocupados (Ronda 1)
                     </h2>
                     <p className="text-xs mb-3" style={{ color: T.inkDim }}>
                       Si alguien ocupó un lugar por error, o un equipo abandona antes de jugar ese partido, sacalo
