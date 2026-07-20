@@ -554,7 +554,7 @@ export default function AdminPage({ params }) {
           <SuitIcon suit="copa" size={20} />
         </div>
         <h1 className="text-2xl font-black text-center" style={{ color: T.ink, fontFamily: "Georgia, serif" }}>
-          {tournament.nombre || "Torneo de Truco"} · panel del organizador
+          {tournament.nombre || "Torneo de Truco"} · Panel del organizador
           {tournament.cerrado && !tournament.champion_id && (
             <span className="block text-xs font-bold mt-1" style={{ color: T.redDim }}>
               🏁 Cerrado sin campeón
@@ -751,7 +751,7 @@ export default function AdminPage({ params }) {
                   >
                     <span>Equipos anotados ({teams.length})</span>
                     <span className="text-xs" style={{ color: T.inkDim }}>
-                      {mostrarEquipos ? "ocultar ▲" : "mostrar ▼"}
+                      {mostrarEquipos ? "Ocultar ▲" : "Mostrar ▼"}
                     </span>
                   </button>
                   {mostrarEquipos && (
@@ -790,7 +790,7 @@ export default function AdminPage({ params }) {
               >
                 <span>Equipos y pagos ({teams.length})</span>
                 <span className="text-xs" style={{ color: T.inkDim }}>
-                  {mostrarEquipos ? "ocultar ▲" : "mostrar ▼"}
+                  {mostrarEquipos ? "Ocultar ▲" : "Mostrar ▼"}
                 </span>
               </button>
               {mostrarEquipos && (
