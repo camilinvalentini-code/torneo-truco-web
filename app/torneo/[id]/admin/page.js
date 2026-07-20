@@ -845,7 +845,7 @@ export default function AdminPage({ params }) {
                 >
                   <span className="font-bold text-sm">Ajustar equipos antes de sortear</span>
                   <span className="text-xs" style={{ color: T.inkDim }}>
-                    {mostrarQuitarEquipo ? "ocultar ▲" : "mostrar ▼"}
+                    {mostrarQuitarEquipo ? "Ocultar ▲" : "Mostrar ▼"}
                   </span>
                 </button>
                 {mostrarQuitarEquipo && (
