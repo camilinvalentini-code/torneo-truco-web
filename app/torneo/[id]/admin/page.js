@@ -41,6 +41,7 @@ export default function AdminPage({ params }) {
   const [simulando, setSimulando] = useState(false);
   const [mostrarEquipos, setMostrarEquipos] = useState(false);
   const [mostrarQuitarEquipo, setMostrarQuitarEquipo] = useState(false);
+  const [nombreNuevoEquipo, setNombreNuevoEquipo] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
@@ -261,6 +262,34 @@ export default function AdminPage({ params }) {
       console.error(err);
       return;
     }
+    load();
+  }
+
+  async function agregarEquipoAlTorneo(nombre) {
+    const limpio = nombre.trim();
+    if (!limpio) return;
+    setError("");
+    const { data: nuevo, error: errInsert } = await supabase
+      .from("teams")
+      .insert({ tournament_id: id, name: limpio, players: "", paid: false })
+      .select()
+      .single();
+    if (errInsert) {
+      setError("No se pudo agregar el equipo. Probá de nuevo.");
+      console.error(errInsert);
+      return;
+    }
+    await supabase.from("matches").delete().eq("tournament_id", id).eq("bracket", "main");
+    await supabase.from("matches").delete().eq("tournament_id", id).eq("bracket", "repechaje");
+    await supabase.from("tournaments").update({ champion_id: null, repechaje_champion_id: null }).eq("id", id);
+    const todos = [...teams.map((t) => t.id), nuevo.id];
+    const { error: err } = await generarCuadroPrincipal(todos);
+    if (err) {
+      setError("No se pudo rearmar el cuadro con el equipo nuevo. Probá de nuevo.");
+      console.error(err);
+      return;
+    }
+    setNombreNuevoEquipo("");
     load();
   }
 
@@ -814,7 +843,7 @@ export default function AdminPage({ params }) {
                   className="w-full flex items-center justify-between"
                   style={{ color: T.gold }}
                 >
-                  <span className="font-bold text-sm">¿Algún equipo no juega más?</span>
+                  <span className="font-bold text-sm">Ajustar equipos antes de sortear</span>
                   <span className="text-xs" style={{ color: T.inkDim }}>
                     {mostrarQuitarEquipo ? "ocultar ▲" : "mostrar ▼"}
                   </span>
@@ -822,6 +851,32 @@ export default function AdminPage({ params }) {
                 {mostrarQuitarEquipo && (
                   <>
                     <p className="text-xs mb-2 mt-2" style={{ color: T.inkDim }}>
+                      ¿Se anotó tarde un equipo más? Agregalo acá — el cuadro se rearma con todos.
+                    </p>
+                    <div className="flex gap-2 mb-4">
+                      <input
+                        value={nombreNuevoEquipo}
+                        onChange={(e) => setNombreNuevoEquipo(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            agregarEquipoAlTorneo(nombreNuevoEquipo);
+                          }
+                        }}
+                        placeholder="Nombre del equipo nuevo"
+                        className="flex-1 px-3 py-2 rounded-xl text-sm"
+                        style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+                      />
+                      <button
+                        onClick={() => agregarEquipoAlTorneo(nombreNuevoEquipo)}
+                        className="px-4 py-2 rounded-xl font-bold text-sm"
+                        style={{ background: T.gold, color: T.ink }}
+                      >
+                        + Agregar
+                      </button>
+                    </div>
+
+                    <p className="text-xs mb-2" style={{ color: T.inkDim }}>
                       ¿Perdió un desempate, se bajó, etc.? Sacalo — el cuadro se rearma solo con los que queden.
                     </p>
                     <div className="flex flex-wrap gap-2">
