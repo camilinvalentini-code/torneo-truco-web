@@ -7,12 +7,18 @@ export default function TeamList({ teams, onTogglePaid, onRemove, editable, twoC
   const { T } = useTheme();
   return (
     <div className={twoColumns ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2"}>
-      {teams.map((t) => (
+      {teams.map((t, i) => (
         <div
           key={t.id}
           className="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors duration-200"
           style={{ background: T.panelLight }}
         >
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+            style={{ background: T.gold, color: INK_ON_LIGHT }}
+          >
+            {i + 1}
+          </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate" style={{ color: T.ink }}>
               {t.name}

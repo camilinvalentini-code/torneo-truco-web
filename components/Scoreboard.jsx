@@ -128,17 +128,28 @@ function Team({ label, score, onPlus, onMinus, onRename, editableNames, disabled
       <div className="text-center text-[11px] mt-1" style={{ color: T.inkDim }}>
         tocá acá para sumar un tanto
       </div>
-      <div className="flex justify-center mt-2">
+      <div className="flex justify-center gap-2 mt-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onPlus();
+          }}
+          disabled={disabled}
+          className="px-8 py-3 rounded-full text-base font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
+          style={{ background: T.gold, color: T.ink }}
+        >
+          +1
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onMinus();
           }}
           disabled={disabled}
-          className="px-8 py-3 rounded-full text-base font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
+          className="px-6 py-3 rounded-full text-base font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
           style={{ background: T.panelLight, color: T.redDim, border: `1px solid ${T.line}` }}
         >
-          −1 (deshacer)
+          −1
         </button>
       </div>
     </div>
@@ -203,14 +214,25 @@ function Col({ label, score, onPlus, onMinus, onRename, editableNames, disabled,
       <div className="text-[10px] mt-1" style={{ color: T.inkDim }}>
         tocá para sumar
       </div>
-      <div className="flex justify-center mt-2">
+      <div className="flex justify-center gap-1.5 mt-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onPlus();
+          }}
+          disabled={disabled}
+          className="px-6 py-2.5 rounded-full text-sm font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
+          style={{ background: T.gold, color: T.ink }}
+        >
+          +1
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onMinus();
           }}
           disabled={disabled}
-          className="px-6 py-2.5 rounded-full text-sm font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
+          className="px-5 py-2.5 rounded-full text-sm font-extrabold transition-transform duration-150 active:scale-95 disabled:opacity-40"
           style={{ background: T.panelLight, color: T.redDim, border: `1px solid ${T.line}` }}
         >
           −1

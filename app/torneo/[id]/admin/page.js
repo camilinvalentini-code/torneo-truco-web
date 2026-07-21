@@ -228,6 +228,41 @@ export default function AdminPage({ params }) {
     load();
   }
 
+  function fasesListasParaResortear() {
+    const porRonda = {};
+    mainMatches.forEach((m) => {
+      porRonda[m.round_index] = porRonda[m.round_index] || [];
+      porRonda[m.round_index].push(m);
+    });
+    return Object.keys(porRonda)
+      .map(Number)
+      .filter((idx) => {
+        if (idx === 0) return false; // la ronda 0 ya tiene su propio botón de "Resortear"
+        const ms = porRonda[idx];
+        const completa = ms.every((m) => m.team1_id && m.team2_id);
+        const sinJugar = ms.every((m) => !m.winner_id && m.score_a === 0 && m.score_b === 0);
+        return completa && sinJugar;
+      })
+      .sort((a, b) => a - b)
+      .map((idx) => ({ idx, cantidad: porRonda[idx].length }));
+  }
+
+  async function resortearFase(idx) {
+    if (!window.confirm(`¿Volver a sortear los cruces de esta fase? Nadie jugó nada todavía ahí, así que es seguro.`)) return;
+    setError("");
+    const { error: err } = await supabase.rpc("resortear_fase", {
+      p_tournament_id: id,
+      p_bracket: "main",
+      p_round_index: idx,
+    });
+    if (err) {
+      setError("No se pudo resortear esa fase. Probá de nuevo.");
+      console.error(err);
+      return;
+    }
+    load();
+  }
+
   async function resortear() {
     if (!window.confirm("¿Volver a sortear? Se descarta el cuadro actual y se arma uno nuevo desde cero.")) return;
     setError("");
@@ -471,6 +506,13 @@ export default function AdminPage({ params }) {
   }
 
   function textoCrucesPendientes() {
+    const numeroPorEquipo = {};
+    teams.forEach((t, i) => (numeroPorEquipo[t.id] = i + 1));
+    const conNumero = (teamId) => {
+      const nombre = teamsById[teamId]?.name || "?";
+      const num = numeroPorEquipo[teamId];
+      return num ? `${num} (${nombre})` : nombre;
+    };
     const pendientes = crucesPendientes();
     const porRonda = {};
     pendientes.forEach((m) => {
@@ -484,16 +526,16 @@ export default function AdminPage({ params }) {
         const totalRonda = mainMatches.filter((m) => m.round_index === idx).length;
         const nombreRonda = roundLabel(totalRonda);
         const lineas = porRonda[idx].map((m) => {
-          const n1 = teamsById[m.team1_id]?.name || "?";
-          if (m.bye) return `*${n1}* → LIBRE`;
-          if (!m.team2_id) return `*${n1}* → espera rival`;
-          const n2 = teamsById[m.team2_id]?.name || "?";
-          return `*${n1}* vs *${n2}*`;
+          const n1 = conNumero(m.team1_id);
+          if (m.bye) return `${n1} → LIBRE`;
+          if (!m.team2_id) return `${n1} → espera rival`;
+          const n2 = conNumero(m.team2_id);
+          return `${n1} vs ${n2}`;
         });
         return `📋 ${nombreRonda}\n${lineas.join("\n")}`;
       });
     const fecha = tournament.fecha ? ` — ${tournament.fecha}` : "";
-    const texto = `⚔️ *${tournament.nombre}*${fecha}\n\n${bloques.join("\n\n")}\n\n${publicUrl}`;
+    const texto = `⚔️ ${tournament.nombre}${fecha}\n\n${bloques.join("\n\n")}\n\n${publicUrl}`;
     return { texto, matches: pendientes };
   }
 
@@ -825,6 +867,17 @@ export default function AdminPage({ params }) {
                 </div>
               );
             })()}
+
+            {fasesListasParaResortear().map(({ idx, cantidad }) => (
+              <button
+                key={idx}
+                onClick={() => resortearFase(idx)}
+                className="w-full py-2 rounded-2xl font-bold text-xs mb-3 transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{ background: T.panelLight, color: T.ink, border: `1px solid ${T.gold}` }}
+              >
+                🔄 Resortear {roundLabel(cantidad)} (todavía no se jugó nada ahí)
+              </button>
+            ))}
 
             {sorteoSinJugar() && (
               <button

@@ -60,8 +60,33 @@ export default function TorneoPublico({ params, searchParams }) {
 
   const teamsById = {};
   teams.forEach((t) => (teamsById[t.id] = t));
-  const mainMatches = matches.filter((m) => m.bracket === "main");
+  const mainMatchesTodos = matches.filter((m) => m.bracket === "main");
   const repMatches = matches.filter((m) => m.bracket === "repechaje");
+
+  // Los competidores no ven una fase hasta que la anterior termina del
+  // todo — así no aparece un montón de "Por definir" de rondas que ni
+  // arrancaron. La ronda 0 siempre se ve.
+  function rondaMaximaVisible(ms) {
+    const porRonda = {};
+    ms.forEach((m) => {
+      porRonda[m.round_index] = porRonda[m.round_index] || [];
+      porRonda[m.round_index].push(m);
+    });
+    const indices = Object.keys(porRonda).map(Number).sort((a, b) => a - b);
+    let max = 0;
+    for (const idx of indices) {
+      if (idx === 0) continue;
+      const anterior = porRonda[idx - 1] || [];
+      const anteriorCompleta = anterior.length > 0 && anterior.every((m) => m.bye || m.winner_id);
+      if (anteriorCompleta) max = idx;
+      else break;
+    }
+    return max;
+  }
+  const maxVisibleMain = rondaMaximaVisible(mainMatchesTodos);
+  const mainMatches = mainMatchesTodos.filter((m) => m.round_index <= maxVisibleMain);
+
+  const hayFasesOcultas = mainMatchesTodos.length > mainMatches.length;
 
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ background: T.bg }}>
@@ -109,6 +134,11 @@ export default function TorneoPublico({ params, searchParams }) {
         ) : (
           <>
             <BracketDisplay matches={mainMatches} teamsById={teamsById} />
+            {hayFasesOcultas && (
+              <p className="text-center text-xs mt-3" style={{ color: T.inkDim }}>
+                Las siguientes fases se muestran apenas termine la actual.
+              </p>
+            )}
             {tournament.repechaje && (
               <div className="mt-6">
                 {tournament.repechaje_champion_id && (

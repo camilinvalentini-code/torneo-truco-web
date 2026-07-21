@@ -5,12 +5,14 @@ import { useTheme } from "../../../lib/theme";
 import { useSkin } from "../../../lib/scoreboardSkin";
 import { supabase } from "../../../lib/supabaseClient";
 import { fraseCampeonAlAzar } from "../../../lib/champFrases";
+import { useWakeLock } from "../../../lib/useWakeLock";
 import Scoreboard from "../../../components/Scoreboard";
 import ThemeToggleButton from "../../../components/ThemeToggleButton";
 import SuitIcon from "../../../components/SuitIcon";
 
 export default function PartidoPage({ params }) {
   const { token } = params;
+  useWakeLock();
   const { T } = useTheme();
   const { layout, marks, setLayout, setMarks } = useSkin();
   const [match, setMatch] = useState(null);
@@ -58,13 +60,17 @@ export default function PartidoPage({ params }) {
   }, [match?.id]);
 
   async function onChange(side, delta) {
-    if (!match || busy || match.winner_id) return;
+    if (!match || busy || match.winner_id || match.confirmacion_pendiente) return;
     const field = side === "A" ? "score_a" : "score_b";
     const proyectado = Math.max(0, Math.min(puntosMax, match[field] + delta));
     if (delta > 0 && proyectado >= puntosMax) {
-      const nombreGanador = side === "A" ? nameA : nameB;
-      const ok = window.confirm(`¿Confirmás que "${nombreGanador}" ganó ${puntosMax} puntos? Esto cierra el partido y avanza de fase.`);
-      if (!ok) return;
+      // No lo confirmamos solo en este celular — lo proponemos, y
+      // cualquiera de los dos que estén mirando este partido lo confirma.
+      setBusy(true);
+      const { data, error } = await supabase.rpc("proponer_cierre", { p_match_token: token, p_lado: side });
+      if (!error && data) setMatch(data);
+      setBusy(false);
+      return;
     }
     setBusy(true);
     setMatch((m) => ({ ...m, [field]: proyectado })); // respuesta inmediata en pantalla
@@ -73,6 +79,20 @@ export default function PartidoPage({ params }) {
       p_lado: side,
       p_delta: delta,
     });
+    if (!error && data) setMatch(data);
+    setBusy(false);
+  }
+
+  async function confirmarCierre() {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("confirmar_cierre", { p_match_token: token });
+    if (!error && data) setMatch(data);
+    setBusy(false);
+  }
+
+  async function cancelarCierre() {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("cancelar_cierre", { p_match_token: token });
     if (!error && data) setMatch(data);
     setBusy(false);
   }
@@ -180,13 +200,43 @@ export default function PartidoPage({ params }) {
           </button>
         </div>
 
+        {match.confirmacion_pendiente && (
+          <div
+            className="rounded-2xl p-4 mb-4 text-center border-2 shadow-md"
+            style={{ background: "#FBF3E3", borderColor: "#EAC27A" }}
+          >
+            <p className="text-sm font-bold mb-3" style={{ color: "#33453E" }}>
+              ¿Confirmás que "{match.lado_propuesto === "A" ? nameA : nameB}" ganó {puntosMax} puntos? Esto cierra
+              el partido y avanza de fase.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={confirmarCierre}
+                disabled={busy}
+                className="px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-60"
+                style={{ background: "#EAC27A", color: "#33453E" }}
+              >
+                Confirmar
+              </button>
+              <button
+                onClick={cancelarCierre}
+                disabled={busy}
+                className="px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-60"
+                style={{ background: "transparent", color: "#B85C55", border: "1px solid #B85C55" }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         <Scoreboard
           nameA={nameA}
           nameB={nameB}
           scoreA={match.score_a}
           scoreB={match.score_b}
           onChange={onChange}
-          disabled={busy || !!match.winner_id}
+          disabled={busy || !!match.winner_id || match.confirmacion_pendiente}
           layout={layout}
           marks={marks}
           maxScore={puntosMax}

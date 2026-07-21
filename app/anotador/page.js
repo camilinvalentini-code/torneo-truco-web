@@ -7,10 +7,12 @@ import { fraseCampeonAlAzar } from "../../lib/champFrases";
 import ThemeToggleButton from "../../components/ThemeToggleButton";
 import SuitIcon from "../../components/SuitIcon";
 import Scoreboard from "../../components/Scoreboard";
+import { useWakeLock } from "../../lib/useWakeLock";
 
 const CLAVE = "torneotruco:anotador-libre";
 
 export default function AnotadorLibre() {
+  useWakeLock();
   const { T } = useTheme();
   const { layout, marks, setLayout, setMarks } = useSkin();
   const [nameA, setNameA] = useState("Nosotros");

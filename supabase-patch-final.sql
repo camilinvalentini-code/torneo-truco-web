@@ -14,6 +14,7 @@ declare
   byes int;
   shuffled uuid[];
   sizes int[];
+  team1_usado uuid[] := array[]::uuid[];
   idx int := 1;
   i int;
   r int;
@@ -44,6 +45,7 @@ begin
     t1 := shuffled[idx]; idx := idx + 1;
     is_bye := sizes[i] = 1;
     if is_bye then t2 := null; else t2 := shuffled[idx]; idx := idx + 1; end if;
+    team1_usado := array_append(team1_usado, t1);
     insert into matches (tournament_id, bracket, round_index, match_index, team1_id, team2_id, winner_id, bye, match_token)
     values (p_tournament_id, p_bracket, 0, i - 1, t1, t2, case when is_bye then t1 else null end, is_bye,
             case when is_bye then null else encode(gen_random_bytes(8), 'hex') end);
@@ -60,22 +62,24 @@ begin
     end loop;
   end loop;
 
+  -- Propagar los "libres" de la ronda 0 a la ronda 1 — usando el equipo
+  -- que DE VERDAD quedó anotado en ese partido (team1_usado), no una
+  -- posición recalculada a ciegas en el mazo mezclado.
   for i in 0..num_matches0 - 1 loop
     if sizes[i + 1] = 1 then
       next_idx := i / 2;
       slot := case when i % 2 = 0 then 'team1_id' else 'team2_id' end;
       if slot = 'team1_id' then
-        update matches set team1_id = shuffled[i + 1]
+        update matches set team1_id = team1_usado[i + 1]
           where tournament_id = p_tournament_id and bracket = p_bracket and round_index = 1 and match_index = next_idx;
       else
-        update matches set team2_id = shuffled[i + 1]
+        update matches set team2_id = team1_usado[i + 1]
           where tournament_id = p_tournament_id and bracket = p_bracket and round_index = 1 and match_index = next_idx;
       end if;
     end if;
   end loop;
 end;
 $$;
-
 create or replace function public.declarar_ganador(p_match_id uuid, p_winner_id uuid)
 returns void language plpgsql security definer
 set search_path = public, pg_temp as $$
