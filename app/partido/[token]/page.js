@@ -21,6 +21,7 @@ export default function PartidoPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [yaConfirmeLocal, setYaConfirmeLocal] = useState(false);
 
   const load = useCallback(async () => {
     const { data: m } = await supabase.from("matches").select("*").eq("match_token", token).single();
@@ -64,11 +65,13 @@ export default function PartidoPage({ params }) {
     const field = side === "A" ? "score_a" : "score_b";
     const proyectado = Math.max(0, Math.min(puntosMax, match[field] + delta));
     if (delta > 0 && proyectado >= puntosMax) {
-      // No lo confirmamos solo en este celular — lo proponemos, y
-      // cualquiera de los dos que estén mirando este partido lo confirma.
+      // No lo confirmamos solo en este celular — lo proponemos (eso ya
+      // cuenta como la primera confirmación), y falta que la otra mesa
+      // confirme también para que se cierre de verdad.
       setBusy(true);
       const { data, error } = await supabase.rpc("proponer_cierre", { p_match_token: token, p_lado: side });
       if (!error && data) setMatch(data);
+      setYaConfirmeLocal(true);
       setBusy(false);
       return;
     }
@@ -87,6 +90,7 @@ export default function PartidoPage({ params }) {
     setBusy(true);
     const { data, error } = await supabase.rpc("confirmar_cierre", { p_match_token: token });
     if (!error && data) setMatch(data);
+    setYaConfirmeLocal(true);
     setBusy(false);
   }
 
@@ -94,6 +98,7 @@ export default function PartidoPage({ params }) {
     setBusy(true);
     const { data, error } = await supabase.rpc("cancelar_cierre", { p_match_token: token });
     if (!error && data) setMatch(data);
+    setYaConfirmeLocal(false);
     setBusy(false);
   }
 
@@ -205,18 +210,23 @@ export default function PartidoPage({ params }) {
             className="rounded-2xl p-4 mb-4 text-center border-2 shadow-md"
             style={{ background: "#FBF3E3", borderColor: "#EAC27A" }}
           >
-            <p className="text-sm font-bold mb-3" style={{ color: "#33453E" }}>
+            <p className="text-sm font-bold mb-1" style={{ color: "#33453E" }}>
               ¿Confirmás que "{match.lado_propuesto === "A" ? nameA : nameB}" ganó {puntosMax} puntos? Esto cierra
               el partido y avanza de fase.
+            </p>
+            <p className="text-xs mb-3" style={{ color: "#B85C55" }}>
+              {yaConfirmeLocal
+                ? "Ya confirmaste desde este celular — falta que confirmen desde el otro."
+                : "Hace falta que confirmen las dos mesas."}
             </p>
             <div className="flex gap-2 justify-center">
               <button
                 onClick={confirmarCierre}
-                disabled={busy}
-                className="px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-60"
+                disabled={busy || yaConfirmeLocal}
+                className="px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-40"
                 style={{ background: "#EAC27A", color: "#33453E" }}
               >
-                Confirmar
+                {yaConfirmeLocal ? "Ya confirmaste ✓" : "Confirmar"}
               </button>
               <button
                 onClick={cancelarCierre}

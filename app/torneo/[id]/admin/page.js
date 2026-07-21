@@ -357,31 +357,18 @@ export default function AdminPage({ params }) {
   async function reabrirPartido(match) {
     const hermanos = matches.filter((m) => m.bracket === match.bracket);
     const maxRound = Math.max(...hermanos.map((m) => m.round_index));
-    if (match.round_index < maxRound) {
-      const siguienteIdx = Math.floor(match.match_index / 2);
-      const siguiente = hermanos.find((m) => m.round_index === match.round_index + 1 && m.match_index === siguienteIdx);
-      if (siguiente?.winner_id) {
-        window.alert(
-          "No se puede reabrir: el ganador de este partido ya jugó (y quizás ganó) el siguiente. Reabrí primero ese otro partido."
-        );
-        return;
-      }
-    }
-    if (!window.confirm("¿Reabrir este partido? El resultado actual se borra y vuelve a estar 'por jugar'.")) return;
+    const afecta = match.round_index < maxRound;
+    const mensaje = afecta
+      ? "¿Reabrir este partido? Como su resultado ya se usó para jugar partidos más adelante, esos también se deshacen automáticamente, en cascada, hasta el final del cuadro."
+      : "¿Reabrir este partido? El resultado actual se borra y vuelve a estar 'por jugar'.";
+    if (!window.confirm(mensaje)) return;
 
-    if (match.round_index < maxRound) {
-      const siguienteIdx = Math.floor(match.match_index / 2);
-      const slot = match.match_index % 2 === 0 ? "team1_id" : "team2_id";
-      const siguiente = hermanos.find((m) => m.round_index === match.round_index + 1 && m.match_index === siguienteIdx);
-      if (siguiente) {
-        await supabase.from("matches").update({ [slot]: null }).eq("id", siguiente.id);
-      }
-    } else if (match.bracket === "main") {
-      await supabase.from("tournaments").update({ champion_id: null }).eq("id", id);
-    } else {
-      await supabase.from("tournaments").update({ repechaje_champion_id: null }).eq("id", id);
+    const { error: err } = await supabase.rpc("reabrir_cascada", { p_match_id: match.id });
+    if (err) {
+      setError("No se pudo reabrir el partido. Probá de nuevo.");
+      console.error(err);
+      return;
     }
-    await supabase.from("matches").update({ winner_id: null }).eq("id", match.id);
     load();
   }
 
