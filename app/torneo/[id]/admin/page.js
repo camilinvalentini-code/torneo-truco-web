@@ -392,19 +392,6 @@ export default function AdminPage({ params }) {
     load();
   }
 
-  async function quitarDeCasilleroVidon(matchId, teamId) {
-    const nombre = teamsById[teamId]?.name || "este equipo";
-    if (!window.confirm(`¿Sacar a "${nombre}" de ese lugar? El casillero queda libre para el próximo perdedor.`)) return;
-    setError("");
-    const { error: err } = await supabase.rpc("quitar_de_casillero_vidon", { p_match_id: matchId, p_team_id: teamId });
-    if (err) {
-      setError("No se pudo sacar al equipo de ese lugar.");
-      console.error(err);
-      return;
-    }
-    load();
-  }
-
   function repechajeSinJugar() {
     if (!repMatches.length) return true;
     return repMatches.every((m) => !m.winner_id && m.score_a === 0 && m.score_b === 0);
@@ -491,18 +478,36 @@ export default function AdminPage({ params }) {
   const repMatches = matches.filter((m) => m.bracket === "repechaje");
   const publicUrl = `${origin}/torneo/${id}`;
 
+  function rondaActualIndex() {
+    const porRonda = {};
+    mainMatches.forEach((m) => {
+      porRonda[m.round_index] = porRonda[m.round_index] || [];
+      porRonda[m.round_index].push(m);
+    });
+    const indices = Object.keys(porRonda).map(Number).sort((a, b) => a - b);
+    for (const idx of indices) {
+      const todosListos = porRonda[idx].every((m) => m.bye || m.winner_id);
+      if (!todosListos) return idx;
+    }
+    return indices[indices.length - 1] ?? 0; // torneo ya terminado: la última
+  }
+
   function crucesPendientes() {
     // Un cruce está pendiente de avisar si: es un partido nuevo recién
     // definido (avisado=false), o si es un "espera rival" recién armado
     // (avisado_espera=false). Cuando a un "espera rival" ya avisado le
     // aparece el rival, vuelve a contar como pendiente (avisado sigue
     // en false hasta que se avise ESE cruce ya completo).
+    // Importante: solo mira la fase ACTUAL — la que sigue no se avisa
+    // hasta que la actual termine del todo.
+    const idx = rondaActualIndex();
     const pendientes = mainMatches.filter((m) => {
+      if (m.round_index !== idx) return false;
       if (!m.team1_id) return false; // nada para avisar todavía
       if (m.bye || m.team2_id) return !m.avisado; // cruce definido (o libre)
       return !m.avisado_espera; // solo espera rival
     });
-    return pendientes.sort((a, b) => a.round_index - b.round_index || a.match_index - b.match_index);
+    return pendientes.sort((a, b) => a.match_index - b.match_index);
   }
 
   function textoCrucesPendientes() {
@@ -573,27 +578,24 @@ export default function AdminPage({ params }) {
       const num = numeroPorEquipo[teamId];
       return num ? `${num} (${nombre})` : nombre;
     };
-    const rondasConAlgo = [...new Set(mainMatches.filter((m) => m.team1_id).map((m) => m.round_index))].sort((a, b) => a - b);
-    const bloques = rondasConAlgo.map((idx) => {
-      const rondaMatches = mainMatches.filter((m) => m.round_index === idx).sort((a, b) => a.match_index - b.match_index);
-      const nombreRonda = roundLabel(rondaMatches.length);
-      const lineas = rondaMatches
-        .filter((m) => m.team1_id)
-        .map((m) => {
-          const n1 = conNumero(m.team1_id);
-          if (m.bye) return `${n1} → LIBRE`;
-          if (!m.team2_id) return `${n1} → espera rival`;
-          const n2 = conNumero(m.team2_id);
-          if (m.winner_id) {
-            const marcador = ` (${m.score_a}-${m.score_b})`;
-            return `${n1} vs ${n2}${marcador} — ganó ${conNumero(m.winner_id)}`;
-          }
-          return `${n1} vs ${n2}`;
-        });
-      return `📋 ${nombreRonda} (resumen)\n${lineas.join("\n")}`;
-    });
+    const idx = rondaActualIndex();
+    const rondaMatches = mainMatches.filter((m) => m.round_index === idx).sort((a, b) => a.match_index - b.match_index);
+    const nombreRonda = roundLabel(rondaMatches.length);
+    const lineas = rondaMatches
+      .filter((m) => m.team1_id)
+      .map((m) => {
+        const n1 = conNumero(m.team1_id);
+        if (m.bye) return `${n1} → LIBRE`;
+        if (!m.team2_id) return `${n1} → espera rival`;
+        const n2 = conNumero(m.team2_id);
+        if (m.winner_id) {
+          const marcador = ` (${m.score_a}-${m.score_b})`;
+          return `${n1} vs ${n2}${marcador} — ganó ${conNumero(m.winner_id)}`;
+        }
+        return `${n1} vs ${n2}`;
+      });
     const fecha = tournament.fecha ? ` — ${tournament.fecha}` : "";
-    return `⚔️ ${tournament.nombre}${fecha}\n\n${bloques.join("\n\n")}\n\n${publicUrl}`;
+    return `⚔️ ${tournament.nombre}${fecha}\n📋 ${nombreRonda} (resumen)\n\n${lineas.join("\n")}\n\n${publicUrl}`;
   }
 
   async function copiarCruces() {
@@ -1030,44 +1032,6 @@ export default function AdminPage({ params }) {
                     onReabrir={reabrirPartido}
                   />
                 </div>
-
-                {tournament.modo === "vidon" && (
-                  <div className="mt-6 rounded-2xl p-4 border shadow-sm" style={{ background: T.panel, borderColor: T.line }}>
-                    <h2 className="font-bold mb-2 text-sm" style={{ color: T.gold }}>
-                      Lugares del cuadro ya ocupados (Ronda 1)
-                    </h2>
-                    <p className="text-xs mb-3" style={{ color: T.inkDim }}>
-                      Si alguien ocupó un lugar por error, o un equipo abandona antes de jugar ese partido, sacalo
-                      acá — el lugar queda libre para el próximo que pierda.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {mainMatches
-                        .filter((m) => m.round_index === 0 && !m.winner_id)
-                        .flatMap((m) => [
-                          m.team1_id && { matchId: m.id, teamId: m.team1_id },
-                          m.team2_id && { matchId: m.id, teamId: m.team2_id },
-                        ])
-                        .filter(Boolean)
-                        .map(({ matchId, teamId }) => (
-                          <span
-                            key={matchId + teamId}
-                            className="text-xs pl-3 pr-1.5 py-1.5 rounded-full font-semibold flex items-center gap-1.5"
-                            style={{ background: T.panelLight, color: T.ink }}
-                          >
-                            {teamsById[teamId]?.name}
-                            <button
-                              onClick={() => quitarDeCasilleroVidon(matchId, teamId)}
-                              className="w-5 h-5 rounded-full flex items-center justify-center"
-                              style={{ background: T.redDim, color: "#FFFFFF" }}
-                              title="Sacar de ese lugar"
-                            >
-                              ✕
-                            </button>
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-                )}
 
                 {tournament.repechaje && repMatches.length > 0 && (
                   <div className="mt-6">

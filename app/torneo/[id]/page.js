@@ -63,13 +63,27 @@ export default function TorneoPublico({ params, searchParams }) {
   const mainMatchesTodos = matches.filter((m) => m.bracket === "main");
   const repMatches = matches.filter((m) => m.bracket === "repechaje");
 
-  // Los competidores ven una fase apenas tenga ALGÚN partido con equipos
-  // puestos — el mismo criterio que ya usa el mensaje de WhatsApp del
-  // organizador (partido por partido, no fase completa). Así, si en modo
-  // Vidon ya hay algunos cruces de la fase siguiente definidos mientras
-  // todavía se termina la anterior, se ven en los dos lados por igual.
-  const rondasConAlgo = new Set(mainMatchesTodos.filter((m) => m.team1_id).map((m) => m.round_index));
-  const maxVisibleMain = rondasConAlgo.size > 0 ? Math.max(...rondasConAlgo) : 0;
+  // Los competidores no ven una fase hasta que la anterior termina del
+  // todo (mismo criterio que usa el mensaje de WhatsApp del organizador:
+  // no se adelanta nada de la fase siguiente hasta cerrar la actual).
+  function rondaMaximaVisible(ms) {
+    const porRonda = {};
+    ms.forEach((m) => {
+      porRonda[m.round_index] = porRonda[m.round_index] || [];
+      porRonda[m.round_index].push(m);
+    });
+    const indices = Object.keys(porRonda).map(Number).sort((a, b) => a - b);
+    let max = 0;
+    for (const idx of indices) {
+      if (idx === 0) continue;
+      const anterior = porRonda[idx - 1] || [];
+      const anteriorCompleta = anterior.length > 0 && anterior.every((m) => m.bye || m.winner_id);
+      if (anteriorCompleta) max = idx;
+      else break;
+    }
+    return max;
+  }
+  const maxVisibleMain = rondaMaximaVisible(mainMatchesTodos);
   const mainMatches = mainMatchesTodos.filter((m) => m.round_index <= maxVisibleMain);
 
   const hayFasesOcultas = mainMatchesTodos.length > mainMatches.length;
