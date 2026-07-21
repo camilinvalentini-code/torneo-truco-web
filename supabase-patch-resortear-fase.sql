@@ -45,7 +45,7 @@ begin
     where tournament_id = p_tournament_id and bracket = p_bracket and round_index = p_round_index
     order by match_index
   loop
-    update matches set team1_id = shuffled[idx], team2_id = shuffled[idx + 1] where id = m.id;
+    update matches set team1_id = shuffled[idx], team2_id = shuffled[idx + 1], avisado = false, avisado_espera = false where id = m.id;
     idx := idx + 2;
   end loop;
 end;

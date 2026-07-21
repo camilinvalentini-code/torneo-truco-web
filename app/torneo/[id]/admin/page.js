@@ -565,14 +565,40 @@ export default function AdminPage({ params }) {
     await marcarAvisados(matches);
   }
 
+  function textoResumenActual() {
+    const numeroPorEquipo = {};
+    teams.forEach((t, i) => (numeroPorEquipo[t.id] = i + 1));
+    const conNumero = (teamId) => {
+      const nombre = teamsById[teamId]?.name || "?";
+      const num = numeroPorEquipo[teamId];
+      return num ? `${num} (${nombre})` : nombre;
+    };
+    const conEquipo = mainMatches.filter((m) => m.team1_id);
+    const idxActual = conEquipo.length > 0 ? Math.max(...conEquipo.map((m) => m.round_index)) : 0;
+    const rondaMatches = mainMatches.filter((m) => m.round_index === idxActual).sort((a, b) => a.match_index - b.match_index);
+    const nombreRonda = roundLabel(rondaMatches.length);
+    const lineas = rondaMatches
+      .filter((m) => m.team1_id)
+      .map((m) => {
+        const n1 = conNumero(m.team1_id);
+        if (m.bye) return `${n1} → LIBRE`;
+        if (!m.team2_id) return `${n1} → espera rival`;
+        const n2 = conNumero(m.team2_id);
+        if (m.winner_id) {
+          const marcador = ` (${m.score_a}-${m.score_b})`;
+          return `${n1} vs ${n2}${marcador} — ganó ${conNumero(m.winner_id)}`;
+        }
+        return `${n1} vs ${n2}`;
+      });
+    const fecha = tournament.fecha ? ` — ${tournament.fecha}` : "";
+    return `⚔️ ${tournament.nombre}${fecha}\n📋 ${nombreRonda} (resumen)\n\n${lineas.join("\n")}\n\n${publicUrl}`;
+  }
+
   async function copiarCruces() {
     const { texto, matches } = textoCrucesPendientes();
-    if (matches.length === 0) {
-      alert("No hay cruces nuevos todavía.");
-      return;
-    }
+    const aCopiar = matches.length > 0 ? texto : textoResumenActual();
     try {
-      await navigator.clipboard.writeText(texto);
+      await navigator.clipboard.writeText(aCopiar);
     } catch (e) {
       alert("No se pudo copiar. Probá el botón de compartir.");
       return;
@@ -855,14 +881,10 @@ export default function AdminPage({ params }) {
                   </button>
                   <button
                     onClick={copiarCruces}
-                    className="px-4 py-2.5 rounded-2xl font-bold text-sm"
-                    style={{
-                      background: hayPendientes ? T.panelLight : T.bg,
-                      color: hayPendientes ? T.ink : T.inkDim,
-                      border: `1px solid ${T.line}`,
-                    }}
+                    className="px-4 py-2.5 rounded-2xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+                    style={{ background: T.panelLight, color: T.ink, border: `1px solid ${T.line}` }}
                   >
-                    {hayPendientes ? "📋 Copiar" : "✓ Ya copiado"}
+                    📋 Copiar
                   </button>
                 </div>
               );
