@@ -573,25 +573,27 @@ export default function AdminPage({ params }) {
       const num = numeroPorEquipo[teamId];
       return num ? `${num} (${nombre})` : nombre;
     };
-    const conEquipo = mainMatches.filter((m) => m.team1_id);
-    const idxActual = conEquipo.length > 0 ? Math.max(...conEquipo.map((m) => m.round_index)) : 0;
-    const rondaMatches = mainMatches.filter((m) => m.round_index === idxActual).sort((a, b) => a.match_index - b.match_index);
-    const nombreRonda = roundLabel(rondaMatches.length);
-    const lineas = rondaMatches
-      .filter((m) => m.team1_id)
-      .map((m) => {
-        const n1 = conNumero(m.team1_id);
-        if (m.bye) return `${n1} → LIBRE`;
-        if (!m.team2_id) return `${n1} → espera rival`;
-        const n2 = conNumero(m.team2_id);
-        if (m.winner_id) {
-          const marcador = ` (${m.score_a}-${m.score_b})`;
-          return `${n1} vs ${n2}${marcador} — ganó ${conNumero(m.winner_id)}`;
-        }
-        return `${n1} vs ${n2}`;
-      });
+    const rondasConAlgo = [...new Set(mainMatches.filter((m) => m.team1_id).map((m) => m.round_index))].sort((a, b) => a - b);
+    const bloques = rondasConAlgo.map((idx) => {
+      const rondaMatches = mainMatches.filter((m) => m.round_index === idx).sort((a, b) => a.match_index - b.match_index);
+      const nombreRonda = roundLabel(rondaMatches.length);
+      const lineas = rondaMatches
+        .filter((m) => m.team1_id)
+        .map((m) => {
+          const n1 = conNumero(m.team1_id);
+          if (m.bye) return `${n1} → LIBRE`;
+          if (!m.team2_id) return `${n1} → espera rival`;
+          const n2 = conNumero(m.team2_id);
+          if (m.winner_id) {
+            const marcador = ` (${m.score_a}-${m.score_b})`;
+            return `${n1} vs ${n2}${marcador} — ganó ${conNumero(m.winner_id)}`;
+          }
+          return `${n1} vs ${n2}`;
+        });
+      return `📋 ${nombreRonda} (resumen)\n${lineas.join("\n")}`;
+    });
     const fecha = tournament.fecha ? ` — ${tournament.fecha}` : "";
-    return `⚔️ ${tournament.nombre}${fecha}\n📋 ${nombreRonda} (resumen)\n\n${lineas.join("\n")}\n\n${publicUrl}`;
+    return `⚔️ ${tournament.nombre}${fecha}\n\n${bloques.join("\n\n")}\n\n${publicUrl}`;
   }
 
   async function copiarCruces() {

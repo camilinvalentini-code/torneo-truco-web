@@ -86,7 +86,8 @@ begin
     and id <> p_match_id_recien_jugado
     and (team1_id is null or team2_id is null)
   order by match_index
-  limit 1;
+  limit 1
+  for update;
 
   if not found then
     return; -- no queda ningún casillero libre: el perdedor queda eliminado

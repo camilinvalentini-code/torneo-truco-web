@@ -1,9 +1,7 @@
--- Corrige lo que encontró el Security Advisor de Supabase.
-
--- 1) "colocar_perdedor_vidon" ahora exige ser el dueño del torneo (o
---    admin) cuando quien llama está logueado — igual criterio que el
---    resto de las funciones. El camino sin login (disparado internamente
---    desde declarar_ganador) sigue funcionando igual, sin verse afectado.
+-- Corrige una carrera real: si se fuerzan varios resultados muy rápido,
+-- dos "búsquedas del primer casillero vacío" podían pisarse. El "for
+-- update" bloquea esa fila hasta que la operación anterior termina de
+-- guardar, así la siguiente ve el estado ya actualizado.
 create or replace function public.colocar_perdedor_vidon(p_tournament_id uuid, p_match_id_recien_jugado uuid, p_loser_id uuid)
 returns void language plpgsql security definer
 set search_path = public, pg_temp as $$
@@ -38,17 +36,3 @@ $$;
 revoke execute on function public.colocar_perdedor_vidon(uuid, uuid, uuid) from anon;
 revoke execute on function public.colocar_perdedor_vidon(uuid, uuid, uuid) from public;
 grant execute on function public.colocar_perdedor_vidon(uuid, uuid, uuid) to authenticated;
-
--- 2) Reaplica el fix de "players" que se había deshecho al re-correr una
---    migración vieja.
-drop policy if exists "dueño o admin crea players" on players;
-create policy "dueño o admin crea players" on players for insert
-  with check (auth.uid() is not null);
-
--- 3) Cierra el permiso por default de Postgres en estas dos, de yapa
---    (tienen su propia protección interna, pero no cuesta nada cerrarlas).
-revoke execute on function public.fusionar_jugadores(uuid, uuid) from anon;
-revoke execute on function public.fusionar_jugadores(uuid, uuid) from public;
-revoke execute on function public.handle_new_user() from anon;
-revoke execute on function public.handle_new_user() from authenticated;
-revoke execute on function public.handle_new_user() from public;
