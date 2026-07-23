@@ -7,6 +7,7 @@ import { fraseCampeonAlAzar } from "../../../lib/champFrases";
 import BracketDisplay from "../../../components/BracketDisplay";
 import ThemeToggleButton from "../../../components/ThemeToggleButton";
 import SuitIcon from "../../../components/SuitIcon";
+import MiEquipoPanel from "../../../components/MiEquipoPanel";
 
 export default function TorneoPublico({ params, searchParams }) {
   const { id } = params;
@@ -125,6 +126,10 @@ export default function TorneoPublico({ params, searchParams }) {
               {fraseCampeonAlAzar()}
             </div>
           </div>
+        )}
+
+        {tournament.started && (
+          <MiEquipoPanel tournament={tournament} teams={teams} matches={mainMatchesTodos} teamsById={teamsById} />
         )}
 
         {!tournament.started ? (
