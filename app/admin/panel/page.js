@@ -32,16 +32,16 @@ export default function PanelAdmin() {
     const mapa = {};
     (todos || []).forEach((p) => (mapa[p.id] = p));
     setPendientes(pend || []);
-    setOrganizadores(aprob || []);
+    setes(aprob || []);
     setTorneos(ts || []);
     setPerfilesPorId(mapa);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !session) router.push("/organizador/acceso");
+    if (!authLoading && !session) router.push("//acceso");
     if (!authLoading && profile && (profile.role !== "admin" || profile.status !== "aprobado")) {
-      router.push("/organizador/panel");
+      router.push("//panel");
     }
   }, [authLoading, session, profile, router]);
 
@@ -178,7 +178,7 @@ export default function PanelAdmin() {
                     {t.champion_id && <span className="ml-2">🏆</span>}
                   </div>
                   <div className="text-xs mt-0.5" style={{ color: T.inkDim }}>
-                    organizador: {org ? org.nombre || org.email : "sin asignar"}
+                    Organizador: {org ? org.nombre || org.email : "sin asignar"}
                   </div>
                 </Link>
                 {confirmarBorrar === t.id ? (
