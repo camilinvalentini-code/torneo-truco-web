@@ -37,6 +37,7 @@ export default function AdminPage({ params }) {
   const [vista, setVista] = useState("mesas"); // "mesas" | "cuadro"
   const [simulando, setSimulando] = useState(false);
   const [mostrarEquipos, setMostrarEquipos] = useState(false);
+  const [busquedaEquipos, setBusquedaEquipos] = useState("");
   const [mostrarQuitarEquipo, setMostrarQuitarEquipo] = useState(false);
   const [nombreNuevoEquipo, setNombreNuevoEquipo] = useState("");
 
@@ -841,14 +842,25 @@ export default function AdminPage({ params }) {
                 className="w-full flex items-center justify-between font-bold"
                 style={{ color: T.gold }}
               >
-                <span>Equipos y pagos ({teams.length})</span>
+                <span>Equipos ({teams.length})</span>
                 <span className="text-xs" style={{ color: T.inkDim }}>
                   {mostrarEquipos ? "Ocultar ▲" : "Mostrar ▼"}
                 </span>
               </button>
               {mostrarEquipos && (
                 <div className="mt-3">
-                  <TeamList teams={teams} onTogglePaid={togglePaid} twoColumns />
+                  <input
+                    value={busquedaEquipos}
+                    onChange={(e) => setBusquedaEquipos(e.target.value)}
+                    placeholder="Buscar equipo (para darle su código)..."
+                    className="w-full px-3 py-2 rounded-xl text-sm mb-3"
+                    style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+                  />
+                  <TeamList
+                    teams={teams.filter((t) => t.name.toLowerCase().includes(busquedaEquipos.toLowerCase()))}
+                    onTogglePaid={togglePaid}
+                    twoColumns
+                  />
                 </div>
               )}
             </div>
@@ -1072,7 +1084,7 @@ export default function AdminPage({ params }) {
 function MesasPendientes({ matches, teamsById, origin, onDeclareWinner }) {
   const { T } = useTheme();
   const [abiertoPendientes, setAbiertoPendientes] = useState(true);
-  const [abiertoJugados, setAbiertoJugados] = useState(true);
+  const [abiertoJugados, setAbiertoJugados] = useState(false);
   const pendientes = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && !m.winner_id && m.match_token);
   const jugados = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && m.winner_id);
 
@@ -1186,7 +1198,7 @@ function MesasPendientes({ matches, teamsById, origin, onDeclareWinner }) {
 // jugar ya lo muestra BracketDisplay solo (adminMode + tournamentUrl).
 function BracketDisplayAdmin({ matches, teamsById, origin, onDeclareWinner, onReabrir }) {
   const { T } = useTheme();
-  const [abiertoFinalizados, setAbiertoFinalizados] = useState(true);
+  const [abiertoFinalizados, setAbiertoFinalizados] = useState(false);
   const finalizados = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && m.winner_id && m.match_token);
 
   return (

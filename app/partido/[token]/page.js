@@ -220,7 +220,7 @@ export default function PartidoPage({ params }) {
               border: `1px solid ${T.line}`,
             }}
           >
-            apilado
+            Apilado
           </button>
           <button
             onClick={() => setLayout("vertical")}
@@ -231,7 +231,7 @@ export default function PartidoPage({ params }) {
               border: `1px solid ${T.line}`,
             }}
           >
-            vertical
+            Vertical
           </button>
           <span style={{ color: T.inkDim, fontSize: 11 }}>·</span>
           <button
@@ -243,7 +243,7 @@ export default function PartidoPage({ params }) {
               border: `1px solid ${T.line}`,
             }}
           >
-            palitos
+            Palitos
           </button>
           <button
             onClick={() => setMarks("fosforo")}
@@ -254,7 +254,7 @@ export default function PartidoPage({ params }) {
               border: `1px solid ${T.line}`,
             }}
           >
-            fósforos
+            Fósforos
           </button>
         </div>
 
