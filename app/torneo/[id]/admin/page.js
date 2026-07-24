@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import QRCode from "qrcode";
 import { useTheme } from "../../../../lib/theme";
 import { useAuth } from "../../../../lib/useAuth";
 import { supabase } from "../../../../lib/supabaseClient";
@@ -30,8 +29,6 @@ export default function AdminPage({ params }) {
   const [sugerencias, setSugerencias] = useState([]);
   const [error, setError] = useState("");
   const [origin, setOrigin] = useState("");
-  const [qrTarget, setQrTarget] = useState(null); // match_token abierto en el modal de QR
-  const [qrDataUrl, setQrDataUrl] = useState("");
   const [editandoInfo, setEditandoInfo] = useState(false);
   const [infoNombre, setInfoNombre] = useState("");
   const [infoUbicacion, setInfoUbicacion] = useState("");
@@ -326,13 +323,6 @@ export default function AdminPage({ params }) {
     }
     setNombreNuevoEquipo("");
     load();
-  }
-
-  async function openQr(token) {
-    const url = `${origin}/partido/${token}`;
-    const dataUrl = await QRCode.toDataURL(url, { margin: 1, width: 260, color: { dark: "#33453E", light: "#FBF3E3" } });
-    setQrTarget(token);
-    setQrDataUrl(dataUrl);
   }
 
   async function guardarInfo() {
@@ -1005,7 +995,7 @@ export default function AdminPage({ params }) {
               <MesasPendientes
                 matches={[...mainMatches, ...repMatches]}
                 teamsById={teamsById}
-                onOpenQr={openQr}
+                origin={origin}
                 onDeclareWinner={forzarGanador}
               />
             ) : (
@@ -1014,11 +1004,10 @@ export default function AdminPage({ params }) {
                   Cuadro principal — tocá un equipo para forzar el resultado
                 </h2>
                 <div className="mb-2">
-                  <BracketDisplayWithQr
+                  <BracketDisplayAdmin
                     matches={mainMatches}
                     teamsById={teamsById}
                     origin={origin}
-                    onOpenQr={openQr}
                     onDeclareWinner={forzarGanador}
                     onReabrir={reabrirPartido}
                   />
@@ -1060,11 +1049,10 @@ export default function AdminPage({ params }) {
                       </div>
                     )}
 
-                    <BracketDisplayWithQr
+                    <BracketDisplayAdmin
                       matches={repMatches}
                       teamsById={teamsById}
                       origin={origin}
-                      onOpenQr={openQr}
                       onDeclareWinner={forzarGanador}
                       onReabrir={reabrirPartido}
                     />
@@ -1074,40 +1062,14 @@ export default function AdminPage({ params }) {
             )}
           </>
         )}
-
-        {qrTarget && (
-          <div
-            className="fixed inset-0 flex items-center justify-center p-6"
-            style={{ background: "rgba(0,0,0,0.5)" }}
-            onClick={() => setQrTarget(null)}
-          >
-            <div
-              className="rounded-3xl p-6 text-center max-w-xs w-full"
-              style={{ background: "#FBF3E3" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-sm font-bold mb-3" style={{ color: "#33453E" }}>
-                Escaneá para anotar esta mesa
-              </p>
-              {qrDataUrl && <img src={qrDataUrl} alt="QR del partido" className="mx-auto rounded-xl" />}
-              <button
-                onClick={() => setQrTarget(null)}
-                className="mt-4 text-xs underline font-bold"
-                style={{ color: "#B85C55" }}
-              >
-                cerrar
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-// Vista rápida: una tarjeta por mesa pendiente, con acceso directo al QR,
-// sin tener que scrollear todo el cuadro para llegar hasta ahí.
-function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
+// Vista rápida: una tarjeta por mesa pendiente, con acceso directo al
+// anotador, sin tener que scrollear todo el cuadro para llegar hasta ahí.
+function MesasPendientes({ matches, teamsById, origin, onDeclareWinner }) {
   const { T } = useTheme();
   const [abiertoPendientes, setAbiertoPendientes] = useState(true);
   const [abiertoJugados, setAbiertoJugados] = useState(true);
@@ -1164,13 +1126,15 @@ function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
                       {teamsById[m.team2_id]?.name}
                     </button>
                   </div>
-                  <button
-                    onClick={() => onOpenQr(m.match_token)}
-                    className="mt-1 py-2 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95"
+                  <a
+                    href={`${origin}/partido/${m.match_token}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 py-2 rounded-xl font-bold text-sm text-center transition-all duration-200 hover:scale-105 active:scale-95"
                     style={{ background: T.gold, color: T.ink }}
                   >
-                    📱 Ver QR
-                  </button>
+                    Abrir anotador →
+                  </a>
                 </div>
               ))}
             </div>
@@ -1216,83 +1180,24 @@ function MesasPendientes({ matches, teamsById, onOpenQr, onDeclareWinner }) {
   );
 }
 
-// Igual que BracketDisplay pero agrega un botón "ver QR" en vez del link directo,
-// para que el organizador lo pueda mostrar en pantalla o imprimir.
-function BracketDisplayWithQr({ matches, teamsById, onOpenQr, onDeclareWinner, onReabrir }) {
+// Envuelve BracketDisplay agregando, debajo del cuadro, la lista de
+// tanteadores ya jugados con botón para reabrirlos — lo único que
+// BracketDisplay no trae de fábrica. El link directo a cada mesa por
+// jugar ya lo muestra BracketDisplay solo (adminMode + tournamentUrl).
+function BracketDisplayAdmin({ matches, teamsById, origin, onDeclareWinner, onReabrir }) {
   const { T } = useTheme();
-  const [abiertoPendientes, setAbiertoPendientes] = useState(true);
   const [abiertoFinalizados, setAbiertoFinalizados] = useState(true);
-  const conQr = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && m.match_token);
-  const pendientes = conQr.filter((m) => !m.winner_id);
-  const finalizados = conQr.filter((m) => m.winner_id);
-
-  const Fila = ({ m, clickable }) => (
-    <div
-      className="w-full text-left px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3 transition-colors duration-150"
-      style={{
-        background: clickable ? T.panel : T.panelLight,
-        border: `1px solid ${T.line}`,
-        opacity: clickable ? 1 : 0.85,
-      }}
-    >
-      <button
-        onClick={clickable ? () => onOpenQr(m.match_token) : undefined}
-        className="flex-1 text-left truncate"
-        style={{ cursor: clickable ? "pointer" : "default" }}
-      >
-        <span style={{ color: m.winner_id === m.team1_id ? T.goldBright : T.inkDim }}>
-          {teamsById[m.team1_id]?.name}
-          {!clickable && ` (${m.score_a ?? 0})`}
-        </span>
-        <span style={{ color: T.inkDim }}> vs </span>
-        <span style={{ color: m.winner_id === m.team2_id ? T.goldBright : T.inkDim }}>
-          {teamsById[m.team2_id]?.name}
-          {!clickable && ` (${m.score_b ?? 0})`}
-        </span>
-      </button>
-      {clickable ? (
-        <button onClick={() => onOpenQr(m.match_token)} className="text-xs font-bold flex-shrink-0" style={{ color: T.goldBright }}>
-          📱 ver QR
-        </button>
-      ) : (
-        <button
-          onClick={() => onReabrir(m)}
-          className="text-xs font-bold flex-shrink-0 px-2 py-1 rounded-full"
-          style={{ color: T.redDim, border: `1px solid ${T.redDim}` }}
-          title="Reabrir este partido"
-        >
-          ↺ reabrir
-        </button>
-      )}
-    </div>
-  );
+  const finalizados = matches.filter((m) => !m.bye && m.team1_id && m.team2_id && m.winner_id && m.match_token);
 
   return (
-    <div className="[&_a]:hidden">
-      <BracketDisplay matches={matches} teamsById={teamsById} adminMode onDeclareWinner={onDeclareWinner} />
-
-      {pendientes.length > 0 && (
-        <div className="mt-4">
-          <button
-            onClick={() => setAbiertoPendientes((v) => !v)}
-            className="w-full flex items-center justify-between mb-2"
-          >
-            <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: T.gold }}>
-              Por jugar ({pendientes.length})
-            </h3>
-            <span className="text-xs" style={{ color: T.gold }}>
-              {abiertoPendientes ? "▲" : "▼"}
-            </span>
-          </button>
-          {abiertoPendientes && (
-            <div className="flex flex-col gap-2">
-              {pendientes.map((m) => (
-                <Fila key={m.id} m={m} clickable />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+    <div>
+      <BracketDisplay
+        matches={matches}
+        teamsById={teamsById}
+        adminMode
+        tournamentUrl={origin}
+        onDeclareWinner={onDeclareWinner}
+      />
 
       {finalizados.length > 0 && (
         <div className="mt-6">
@@ -1310,7 +1215,29 @@ function BracketDisplayWithQr({ matches, teamsById, onOpenQr, onDeclareWinner, o
           {abiertoFinalizados && (
             <div className="flex flex-col gap-2">
               {finalizados.map((m) => (
-                <Fila key={m.id} m={m} clickable={false} />
+                <div
+                  key={m.id}
+                  className="w-full text-left px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3"
+                  style={{ background: T.panelLight, border: `1px solid ${T.line}`, opacity: 0.85 }}
+                >
+                  <span className="flex-1 truncate">
+                    <span style={{ color: m.winner_id === m.team1_id ? T.goldBright : T.inkDim }}>
+                      {teamsById[m.team1_id]?.name} ({m.score_a ?? 0})
+                    </span>
+                    <span style={{ color: T.inkDim }}> vs </span>
+                    <span style={{ color: m.winner_id === m.team2_id ? T.goldBright : T.inkDim }}>
+                      {teamsById[m.team2_id]?.name} ({m.score_b ?? 0})
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => onReabrir(m)}
+                    className="text-xs font-bold flex-shrink-0 px-2 py-1 rounded-full"
+                    style={{ color: T.redDim, border: `1px solid ${T.redDim}` }}
+                    title="Reabrir este partido"
+                  >
+                    ↺ reabrir
+                  </button>
+                </div>
               ))}
             </div>
           )}
