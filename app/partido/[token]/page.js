@@ -10,6 +10,10 @@ import Scoreboard from "../../../components/Scoreboard";
 import ThemeToggleButton from "../../../components/ThemeToggleButton";
 import SuitIcon from "../../../components/SuitIcon";
 
+function claveCodigo(matchId) {
+  return `torneotruco:codigo:${matchId}`;
+}
+
 export default function PartidoPage({ params }) {
   const { token } = params;
   useWakeLock();
@@ -22,6 +26,11 @@ export default function PartidoPage({ params }) {
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
   const [yaConfirmeLocal, setYaConfirmeLocal] = useState(false);
+  const [codigo, setCodigo] = useState(null); // código ya verificado para ESTE partido, o null si todavía no
+  const [codigoInput, setCodigoInput] = useState("");
+  const [codigoError, setCodigoError] = useState(null);
+  const [verificando, setVerificando] = useState(false);
+  const desbloqueado = !!codigo;
 
   const load = useCallback(async () => {
     const { data: m } = await supabase.from("matches").select("*").eq("match_token", token).single();
@@ -35,7 +44,7 @@ export default function PartidoPage({ params }) {
     setPuntosMax(t?.puntos_max || 30);
     const ids = [m.team1_id, m.team2_id].filter(Boolean);
     if (ids.length) {
-      const { data: ts } = await supabase.from("teams").select("*").in("id", ids);
+      const { data: ts } = await supabase.from("teams").select("id, name").in("id", ids);
       const map = {};
       (ts || []).forEach((t) => (map[t.id] = t));
       setTeams(map);
@@ -46,6 +55,43 @@ export default function PartidoPage({ params }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!match?.id) return;
+    try {
+      const guardado = window.localStorage.getItem(claveCodigo(match.id));
+      if (guardado) setCodigo(guardado);
+    } catch (e) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [match?.id]);
+
+  async function verificarCodigo() {
+    const limpio = codigoInput.trim();
+    if (!limpio) return;
+    setVerificando(true);
+    setCodigoError(null);
+    const { data, error } = await supabase.rpc("validar_codigo_equipo", { p_match_token: token, p_codigo: limpio });
+    if (!error && data === true) {
+      try {
+        window.localStorage.setItem(claveCodigo(match.id), limpio);
+      } catch (e) {}
+      setCodigo(limpio);
+      setCodigoInput("");
+    } else {
+      setCodigoError("Código incorrecto. Fijate que sea el que te dio la organización.");
+    }
+    setVerificando(false);
+  }
+
+  // Si alguna acción llega a fallar porque el código guardado ya no es
+  // válido (p.ej. alguien tocó el localStorage a mano), volvemos a pedirlo.
+  function onCodigoRechazado() {
+    try {
+      if (match?.id) window.localStorage.removeItem(claveCodigo(match.id));
+    } catch (e) {}
+    setCodigo(null);
+    setCodigoError("Tu código ya no es válido. Ingresalo de nuevo.");
+  }
 
   useEffect(() => {
     if (!match) return;
@@ -61,7 +107,7 @@ export default function PartidoPage({ params }) {
   }, [match?.id]);
 
   async function onChange(side, delta) {
-    if (!match || busy || match.winner_id || match.confirmacion_pendiente) return;
+    if (!match || busy || match.winner_id || match.confirmacion_pendiente || !desbloqueado) return;
     const field = side === "A" ? "score_a" : "score_b";
     const proyectado = Math.max(0, Math.min(puntosMax, match[field] + delta));
     if (delta > 0 && proyectado >= puntosMax) {
@@ -69,8 +115,9 @@ export default function PartidoPage({ params }) {
       // cuenta como la primera confirmación), y falta que la otra mesa
       // confirme también para que se cierre de verdad.
       setBusy(true);
-      const { data, error } = await supabase.rpc("proponer_cierre", { p_match_token: token, p_lado: side });
+      const { data, error } = await supabase.rpc("proponer_cierre", { p_match_token: token, p_lado: side, p_codigo: codigo });
       if (!error && data) setMatch(data);
+      else if (error) onCodigoRechazado();
       setYaConfirmeLocal(true);
       setBusy(false);
       return;
@@ -81,23 +128,29 @@ export default function PartidoPage({ params }) {
       p_match_token: token,
       p_lado: side,
       p_delta: delta,
+      p_codigo: codigo,
     });
     if (!error && data) setMatch(data);
+    else if (error) onCodigoRechazado();
     setBusy(false);
   }
 
   async function confirmarCierre() {
+    if (!desbloqueado) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("confirmar_cierre", { p_match_token: token });
+    const { data, error } = await supabase.rpc("confirmar_cierre", { p_match_token: token, p_codigo: codigo });
     if (!error && data) setMatch(data);
+    else if (error) onCodigoRechazado();
     setYaConfirmeLocal(true);
     setBusy(false);
   }
 
   async function cancelarCierre() {
+    if (!desbloqueado) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("cancelar_cierre", { p_match_token: token });
+    const { data, error } = await supabase.rpc("cancelar_cierre", { p_match_token: token, p_codigo: codigo });
     if (!error && data) setMatch(data);
+    else if (error) onCodigoRechazado();
     setYaConfirmeLocal(false);
     setBusy(false);
   }
@@ -215,28 +268,32 @@ export default function PartidoPage({ params }) {
               el partido y avanza de fase.
             </p>
             <p className="text-xs mb-3" style={{ color: "#B85C55" }}>
-              {yaConfirmeLocal
+              {!desbloqueado
+                ? "Necesitás el código de tu equipo (más abajo) para confirmar o cancelar."
+                : yaConfirmeLocal
                 ? "Ya confirmaste desde este celular — falta que confirmen desde el otro."
                 : "Hace falta que confirmen las dos mesas."}
             </p>
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={confirmarCierre}
-                disabled={busy || yaConfirmeLocal}
-                className="px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-40"
-                style={{ background: "#EAC27A", color: "#33453E" }}
-              >
-                {yaConfirmeLocal ? "Ya confirmaste ✓" : "Confirmar"}
-              </button>
-              <button
-                onClick={cancelarCierre}
-                disabled={busy}
-                className="px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-60"
-                style={{ background: "transparent", color: "#B85C55", border: "1px solid #B85C55" }}
-              >
-                Cancelar
-              </button>
-            </div>
+            {desbloqueado && (
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={confirmarCierre}
+                  disabled={busy || yaConfirmeLocal}
+                  className="px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-40"
+                  style={{ background: "#EAC27A", color: "#33453E" }}
+                >
+                  {yaConfirmeLocal ? "Ya confirmaste ✓" : "Confirmar"}
+                </button>
+                <button
+                  onClick={cancelarCierre}
+                  disabled={busy}
+                  className="px-5 py-2 rounded-xl font-bold text-sm disabled:opacity-60"
+                  style={{ background: "transparent", color: "#B85C55", border: "1px solid #B85C55" }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -246,11 +303,50 @@ export default function PartidoPage({ params }) {
           scoreA={match.score_a}
           scoreB={match.score_b}
           onChange={onChange}
-          disabled={busy || !!match.winner_id || match.confirmacion_pendiente}
+          disabled={busy || !!match.winner_id || match.confirmacion_pendiente || !desbloqueado}
           layout={layout}
           marks={marks}
           maxScore={puntosMax}
         />
+
+        {!desbloqueado && !match.winner_id && (
+          <div
+            className="rounded-2xl p-4 mt-4 mb-2 text-center border shadow-sm"
+            style={{ background: T.panel, borderColor: T.line }}
+          >
+            <p className="text-sm font-bold mb-1" style={{ color: T.ink }}>
+              🔒 Este partido está protegido
+            </p>
+            <p className="text-xs mb-3" style={{ color: T.inkDim }}>
+              Para anotar puntos hace falta el código de {nameA} o de {nameB}. Podés seguir el marcador igual, sin
+              código — solo hace falta para tocar los botones.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <input
+                value={codigoInput}
+                onChange={(e) => setCodigoInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && verificarCodigo()}
+                placeholder="Código de tu equipo"
+                inputMode="numeric"
+                className="px-3 py-2 rounded-xl text-sm text-center w-40"
+                style={{ background: T.bg, color: T.ink, border: `1px solid ${T.line}` }}
+              />
+              <button
+                onClick={verificarCodigo}
+                disabled={verificando || !codigoInput.trim()}
+                className="px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-40"
+                style={{ background: T.gold, color: T.ink }}
+              >
+                {verificando ? "..." : "Desbloquear"}
+              </button>
+            </div>
+            {codigoError && (
+              <p className="text-xs mt-2" style={{ color: "#B85C55" }}>
+                {codigoError}
+              </p>
+            )}
+          </div>
+        )}
 
         <Link
           href={`/torneo/${match.tournament_id}?volver=${token}`}

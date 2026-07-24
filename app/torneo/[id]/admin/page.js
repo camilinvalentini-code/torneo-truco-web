@@ -815,6 +815,10 @@ export default function AdminPage({ params }) {
                   </button>
                   {mostrarEquipos && (
                     <div className="mt-3">
+                      <p className="text-xs mb-2" style={{ color: T.inkDim }}>
+                        🔑 = el código de ese equipo. Dáselo cuando se anoten — lo van a necesitar para anotar
+                        puntos en sus partidos.
+                      </p>
                       <TeamList teams={teams} editable onTogglePaid={togglePaid} onRemove={removeTeam} />
                     </div>
                   )}

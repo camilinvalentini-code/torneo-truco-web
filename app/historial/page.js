@@ -20,7 +20,7 @@ export default function HistorialPage() {
       const champIds = (torneos || []).map((t) => t.champion_id).filter(Boolean);
       let teamsById = {};
       if (champIds.length) {
-        const { data: ts } = await supabase.from("teams").select("*").in("id", champIds);
+        const { data: ts } = await supabase.from("teams").select("id, name").in("id", champIds);
         (ts || []).forEach((t) => (teamsById[t.id] = t));
       }
       setRows((torneos || []).map((t) => ({ ...t, campeonNombre: teamsById[t.champion_id]?.name })));

@@ -28,6 +28,11 @@ export default function TeamList({ teams, onTogglePaid, onRemove, editable, twoC
                 {t.players}
               </div>
             )}
+            {t.codigo && (
+              <div className="text-xs font-mono mt-0.5" style={{ color: T.inkDim }}>
+                🔑 {t.codigo}
+              </div>
+            )}
           </div>
           <button
             onClick={() => onTogglePaid(t.id, !t.paid)}

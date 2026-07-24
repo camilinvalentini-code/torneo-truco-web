@@ -20,7 +20,10 @@ export default function TorneoPublico({ params, searchParams }) {
 
   const load = useCallback(async () => {
     const { data: t } = await supabase.from("tournaments").select("*").eq("id", id).single();
-    const { data: ts } = await supabase.from("teams").select("*").eq("tournament_id", id);
+    const { data: ts } = await supabase
+      .from("teams")
+      .select("id, tournament_id, name, players, paid, created_at")
+      .eq("tournament_id", id);
     const { data: ms } = await supabase
       .from("matches")
       .select("id, tournament_id, bracket, round_index, match_index, team1_id, team2_id, winner_id, score_a, score_b, bye")
